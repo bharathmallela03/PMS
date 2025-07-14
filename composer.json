@@ -1,16 +1,20 @@
 {
-    "name": "laravel/laravel",
+    "name": "pharmacy/management-system",
     "type": "project",
-    "description": "The Laravel Framework.",
-    "keywords": ["framework", "laravel"],
+    "description": "Complete Pharmacy Management System built with Laravel 8",
+    "keywords": ["framework", "laravel", "pharmacy", "management"],
     "license": "MIT",
     "require": {
-        "php": "^7.3|^8.0",
+        "php": "^7.4|^8.0",
+        "barryvdh/laravel-dompdf": "^2.0",
+        "fideloper/proxy": "^4.4",
         "fruitcake/laravel-cors": "^2.0",
         "guzzlehttp/guzzle": "^7.0.1",
+        "intervention/image": "^2.7",
         "laravel/framework": "^8.75",
         "laravel/sanctum": "^2.11",
-        "laravel/tinker": "^2.5"
+        "laravel/tinker": "^2.5",
+        "maatwebsite/excel": "^3.1"
     },
     "require-dev": {
         "facade/ignition": "^2.5",
