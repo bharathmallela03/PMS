@@ -1,0 +1,432 @@
+/* Custom CSS for Pharmacy Management System */
+
+:root {
+    --primary-color: #4e73df;
+    --secondary-color: #858796;
+    --success-color: #1cc88a;
+    --danger-color: #e74a3b;
+    --warning-color: #f6c23e;
+    --info-color: #36b9cc;
+    --light-color: #f8f9fc;
+    --dark-color: #343a40;
+}
+
+/* General Styles */
+body {
+    font-family: 'Nunito', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Helvetica Neue', Arial, sans-serif;
+    background-color: var(--light-color);
+}
+
+.btn {
+    border-radius: 0.35rem;
+    font-weight: 600;
+}
+
+.card {
+    border-radius: 0.35rem;
+    border: 0;
+    box-shadow: 0 0.15rem 1.75rem 0 rgba(58, 59, 69, 0.15);
+}
+
+.card-header {
+    background-color: #fff;
+    border-bottom: 1px solid #e3e6f0;
+}
+
+/* Sidebar Styles */
+.sidebar {
+    min-height: 100vh;
+    background: linear-gradient(180deg, var(--primary-color) 10%, #224abe 100%);
+    box-shadow: 0 0.15rem 1.75rem 0 rgba(58, 59, 69, 0.15);
+}
+
+.sidebar .nav-link {
+    color: rgba(255, 255, 255, 0.8);
+    padding: 1rem;
+    font-weight: 600;
+}
+
+.sidebar .nav-link:hover {
+    color: #fff;
+    background-color: rgba(255, 255, 255, 0.1);
+}
+
+.sidebar .nav-link.active {
+    color: #fff;
+    background-color: rgba(255, 255, 255, 0.2);
+}
+
+.sidebar .sidebar-brand {
+    height: 4.375rem;
+    text-decoration: none;
+    font-size: 1rem;
+    font-weight: 800;
+    padding: 1.5rem 1rem;
+    text-align: center;
+    color: #fff;
+    text-transform: uppercase;
+    letter-spacing: 0.05rem;
+}
+
+/* Header Styles */
+.topbar {
+    height: 4.375rem;
+    background-color: #fff;
+    box-shadow: 0 0.15rem 1.75rem 0 rgba(58, 59, 69, 0.15);
+}
+
+.topbar .nav-link {
+    color: var(--secondary-color);
+}
+
+.topbar .dropdown-list {
+    width: 20rem;
+}
+
+/* Content Area */
+.content-wrapper {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+}
+
+/* Dashboard Cards */
+.border-left-primary {
+    border-left: 0.25rem solid var(--primary-color) !important;
+}
+
+.border-left-success {
+    border-left: 0.25rem solid var(--success-color) !important;
+}
+
+.border-left-info {
+    border-left: 0.25rem solid var(--info-color) !important;
+}
+
+.border-left-warning {
+    border-left: 0.25rem solid var(--warning-color) !important;
+}
+
+.text-xs {
+    font-size: 0.7rem;
+}
+
+.text-gray-300 {
+    color: #dddfeb !important;
+}
+
+.text-gray-800 {
+    color: #5a5c69 !important;
+}
+
+/* Table Styles */
+.table {
+    color: #858796;
+}
+
+.table thead th {
+    background-color: #f8f9fc;
+    border-bottom: 1px solid #e3e6f0;
+    font-weight: 600;
+    color: var(--secondary-color);
+    text-transform: uppercase;
+    font-size: 0.8rem;
+}
+
+.table-bordered {
+    border: 1px solid #e3e6f0;
+}
+
+.table-bordered td,
+.table-bordered th {
+    border: 1px solid #e3e6f0;
+}
+
+/* Medicine Card Styles */
+.medicine-card {
+    transition: transform 0.2s ease-in-out, box-shadow 0.2s ease-in-out;
+    border: none;
+    border-radius: 0.5rem;
+}
+
+.medicine-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 0.5rem 2rem 0 rgba(58, 59, 69, 0.2);
+}
+
+.medicine-image {
+    height: 200px;
+    object-fit: cover;
+    border-radius: 0.5rem 0.5rem 0 0;
+}
+
+.stock-badge {
+    position: absolute;
+    top: 10px;
+    right: 10px;
+}
+
+/* Cart Styles */
+.cart-icon {
+    position: relative;
+}
+
+.cart-count {
+    position: absolute;
+    top: -8px;
+    right: -8px;
+    background: var(--danger-color);
+    color: white;
+    border-radius: 50%;
+    padding: 2px 6px;
+    font-size: 0.7rem;
+    font-weight: bold;
+}
+
+/* Form Styles */
+.form-control {
+    border-radius: 0.35rem;
+    border: 1px solid #d1d3e2;
+}
+
+.form-control:focus {
+    border-color: var(--primary-color);
+    box-shadow: 0 0 0 0.2rem rgba(78, 115, 223, 0.25);
+}
+
+.input-group-text {
+    background-color: #f8f9fc;
+    border: 1px solid #d1d3e2;
+    color: var(--secondary-color);
+}
+
+/* Badge Styles */
+.badge {
+    font-weight: 600;
+    font-size: 0.65em;
+}
+
+/* Invoice Styles */
+.invoice-header {
+    background: linear-gradient(135deg, var(--primary-color), #224abe);
+    color: white;
+    padding: 2rem;
+    border-radius: 0.5rem 0.5rem 0 0;
+}
+
+.invoice-table {
+    margin-bottom: 0;
+}
+
+.invoice-table th {
+    background-color: #f8f9fc;
+    border-bottom: 2px solid #e3e6f0;
+}
+
+.invoice-total {
+    background-color: var(--light-color);
+    padding: 1rem;
+    border-radius: 0 0 0.5rem 0.5rem;
+}
+
+/* Search and Filter Styles */
+.search-bar {
+    background-color: white;
+    border: 1px solid #d1d3e2;
+    border-radius: 2rem;
+    padding: 0.5rem 1rem;
+    box-shadow: 0 0.15rem 1.75rem 0 rgba(58, 59, 69, 0.05);
+}
+
+.filter-dropdown {
+    background-color: white;
+    border: 1px solid #d1d3e2;
+    border-radius: 0.35rem;
+}
+
+/* Progress Styles */
+.progress {
+    height: 0.25rem;
+    border-radius: 0.35rem;
+}
+
+/* Animation Styles */
+.fade-in {
+    animation: fadeIn 0.5s ease-in;
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+.slide-up {
+    animation: slideUp 0.3s ease-out;
+}
+
+@keyframes slideUp {
+    from { transform: translateY(20px); opacity: 0; }
+    to { transform: translateY(0); opacity: 1; }
+}
+
+/* Mobile Responsive */
+@media (max-width: 768px) {
+    .sidebar {
+        position: fixed;
+        top: 0;
+        left: -100%;
+        width: 240px;
+        height: 100vh;
+        z-index: 1050;
+        transition: left 0.3s ease;
+    }
+    
+    .sidebar.show {
+        left: 0;
+    }
+    
+    .sidebar-overlay {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background-color: rgba(0, 0, 0, 0.5);
+        z-index: 1040;
+        display: none;
+    }
+    
+    .sidebar-overlay.show {
+        display: block;
+    }
+    
+    .content-wrapper {
+        margin-left: 0;
+    }
+    
+    .medicine-card {
+        margin-bottom: 1rem;
+    }
+    
+    .table-responsive {
+        font-size: 0.875rem;
+    }
+}
+
+/* Print Styles */
+@media print {
+    .sidebar,
+    .topbar,
+    .btn,
+    .no-print {
+        display: none !important;
+    }
+    
+    .content-wrapper {
+        margin-left: 0 !important;
+    }
+    
+    .card {
+        box-shadow: none !important;
+        border: 1px solid #000 !important;
+    }
+    
+    .invoice-header {
+        background: #f8f9fc !important;
+        color: #000 !important;
+        -webkit-print-color-adjust: exact;
+    }
+}
+
+/* Utility Classes */
+.text-xxs {
+    font-size: 0.6rem;
+}
+
+.text-lg {
+    font-size: 1.125rem;
+}
+
+.text-xl {
+    font-size: 1.25rem;
+}
+
+.rounded-pill {
+    border-radius: 50rem !important;
+}
+
+.shadow-sm {
+    box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075) !important;
+}
+
+.shadow-lg {
+    box-shadow: 0 1rem 3rem rgba(0, 0, 0, 0.175) !important;
+}
+
+/* Loading Spinner */
+.spinner {
+    display: inline-block;
+    width: 20px;
+    height: 20px;
+    border: 3px solid rgba(255, 255, 255, 0.3);
+    border-radius: 50%;
+    border-top-color: #fff;
+    animation: spin 1s ease-in-out infinite;
+}
+
+@keyframes spin {
+    to { transform: rotate(360deg); }
+}
+
+/* Custom Scrollbar */
+::-webkit-scrollbar {
+    width: 8px;
+}
+
+::-webkit-scrollbar-track {
+    background: #f1f1f1;
+}
+
+::-webkit-scrollbar-thumb {
+    background: var(--secondary-color);
+    border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+    background: var(--primary-color);
+}
+
+/* Notification Styles */
+.notification {
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    z-index: 1060;
+    min-width: 300px;
+    border-radius: 0.5rem;
+    box-shadow: 0 0.5rem 2rem 0 rgba(58, 59, 69, 0.3);
+}
+
+.notification.slide-in {
+    animation: slideInRight 0.3s ease-out;
+}
+
+@keyframes slideInRight {
+    from { transform: translateX(100%); }
+    to { transform: translateX(0); }
+}
+
+/* Status Colors */
+.status-pending { color: var(--warning-color); }
+.status-confirmed { color: var(--info-color); }
+.status-processing { color: var(--primary-color); }
+.status-shipped { color: var(--secondary-color); }
+.status-delivered { color: var(--success-color); }
+.status-cancelled { color: var(--danger-color); }
+
+/* Medicine Category Colors */
+.category-analgesic { background-color: #e3f2fd; color: #1565c0; }
+.category-antibiotic { background-color: #f3e5f5; color: #7b1fa2; }
+.category-antacid { background-color: #e8f5e8; color: #2e7d32; }
+.category-vitamin { background-color: #fff3e0; color: #ef6c00; }
+.category-antiseptic { background-color: #fce4ec; color: #c2185b; }
