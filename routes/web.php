@@ -32,8 +32,9 @@ Route::get('/register', [AuthController::class, 'showRegister'])->name('register
 Route::post('/register', [AuthController::class, 'register']);
 
 // Password Setup for Invited Users
-Route::get('/setup-password/{token}', [AuthController::class, 'showPasswordSetup'])->name('password.setup');
-Route::post('/setup-password', [AuthController::class, 'setupPassword']);
+// Password setup routes
+Route::get('/setup-password/{token}', [AuthController::class, 'showPasswordSetup'])->name('password.setup.form');
+Route::post('/setup-password', [AuthController::class, 'setupPassword'])->name('password.setup.store');
 
 // Admin Routes
 Route::prefix('admin')->middleware(['auth:admin'])->group(function () {
@@ -83,11 +84,13 @@ Route::prefix('pharmacist')->middleware(['auth:pharmacist'])->group(function () 
     Route::post('/companies', [PharmacistController::class, 'storeCompany'])->name('pharmacist.companies.store');
     
     // Billing
-    Route::get('/billing', [PharmacistController::class, 'billing'])->name('pharmacist.billing');
-    Route::post('/billing/add-item', [PharmacistController::class, 'addBillingItem'])->name('pharmacist.billing.add-item');
-    Route::post('/billing/generate-invoice', [PharmacistController::class, 'generateInvoice'])->name('pharmacist.billing.generate-invoice');
-    Route::get('/billing/invoice/{id}', [PharmacistController::class, 'showInvoice'])->name('pharmacist.billing.invoice');
-    Route::get('/billing/download/{id}', [PharmacistController::class, 'downloadInvoice'])->name('pharmacist.billing.download');
+   Route::get('/billing', [PharmacistController::class, 'billing'])->name('pharmacist.billing');
+    Route::post('/billing/store', [PharmacistController::class, 'storeBill'])->name('pharmacist.billing.store');
+    Route::get('/billing/{id}', [PharmacistController::class, 'showBill'])->name('pharmacist.billing.show');
+    Route::get('/billing/{id}/print', [PharmacistController::class, 'printBill'])->name('pharmacist.billing.print');
+    Route::put('/billing/{id}/status', [PharmacistController::class, 'updateBillStatus'])->name('pharmacist.billing.status');
+    Route::get('/billing/search', [PharmacistController::class, 'searchBills'])->name('pharmacist.billing.search');
+    Route::get('/search-medicines', [PharmacistController::class, 'searchMedicines'])->name('search.medicines');
     
     // Orders
     Route::get('/orders', [PharmacistController::class, 'orders'])->name('pharmacist.orders');

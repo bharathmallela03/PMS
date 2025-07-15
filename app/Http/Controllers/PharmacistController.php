@@ -19,6 +19,8 @@ use App\Exports\SalesExport;
 use Maatwebsite\Excel\Facades\Excel;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Intervention\Image\Facades\Image;
+use Illuminate\Support\Facades\File;
+
 
 class PharmacistController extends Controller
 {
@@ -96,9 +98,152 @@ class PharmacistController extends Controller
         $companies = Company::active()->get();
         return view('pharmacist.medicines.create', compact('companies'));
     }
+    public function searchMedicines(Request $request)
+{
+    $query = $request->get('query');
+    
+    if (strlen($query) >= 2) {
+        $medicines = Medicine::where('name', 'LIKE', "%{$query}%")
+                            ->where('is_active', true)
+                            ->where('quantity', '>', 0)
+                            ->select('id', 'name', 'price', 'quantity')
+                            ->limit(10)
+                            ->get();
+        
+        return response()->json($medicines);
+    }
+    
+    return response()->json([]);
+}
 
-    public function storeMedicine(Request $request)
-    {
+ public function billingIndex()
+{
+    $pharmacist = Auth::guard('pharmacist')->user();
+    $bills = collect([]); // Replace with actual bills query
+    
+    return view('pharmacist.billing', compact('bills'));
+}
+
+public function storeBilling(Request $request) 
+{
+    try {
+        $request->validate([
+            'patient_name' => 'required|string|max:255',
+            'patient_phone' => 'nullable|string|max:20',
+            'patient_age' => 'nullable|integer|min:1|max:120',
+            'patient_address' => 'nullable|string',
+            'medicine_name' => 'required|array',
+            'medicine_name.*' => 'required|string',
+            'medicine_id' => 'required|array',
+            'medicine_id.*' => 'required|exists:medicines,id',
+            'quantity' => 'required|array',
+            'quantity.*' => 'required|integer|min:1',
+            'price' => 'required|array',
+            'price.*' => 'required|numeric|min:0',
+            'total' => 'required|array',
+            'total.*' => 'required|numeric|min:0',
+            'discount' => 'nullable|numeric|min:0|max:100',
+            'tax' => 'nullable|numeric|min:0',
+            'grand_total' => 'required|numeric|min:0'
+        ]);
+
+        $pharmacist = Auth::guard('pharmacist')->user();
+        
+        // Calculate subtotal from items
+        $subtotal = array_sum($request->total);
+        $discountAmount = ($subtotal * ($request->discount ?? 0)) / 100;
+        $taxableAmount = $subtotal - $discountAmount;
+        $taxAmount = ($taxableAmount * ($request->tax ?? 0)) / 100;
+        
+        // Create bill data
+        $billData = [
+            'bill_number' => 'BILL-' . date('Ymd') . '-' . str_pad(rand(1, 9999), 4, '0', STR_PAD_LEFT),
+            'pharmacist_id' => $pharmacist->id,
+            'patient_name' => $request->patient_name,
+            'patient_phone' => $request->patient_phone,
+            'patient_age' => $request->patient_age,
+            'patient_address' => $request->patient_address,
+            'subtotal' => $subtotal,
+            'discount_percent' => $request->discount ?? 0,
+            'discount_amount' => $discountAmount,
+            'tax_percent' => $request->tax ?? 0,
+            'tax_amount' => $taxAmount,
+            'total_amount' => $request->grand_total,
+            'status' => 'completed',
+            'created_at' => now(),
+            'updated_at' => now()
+        ];
+
+        // For now, we'll create a temporary bill object
+        // TODO: Replace with actual Bill model when created
+        $bill = (object) $billData;
+        $bill->id = rand(1000, 9999);
+
+        // Process each medicine item
+        $billItems = [];
+        for ($i = 0; $i < count($request->medicine_id); $i++) {
+            $medicine = Medicine::find($request->medicine_id[$i]);
+            
+            // Check if enough stock is available
+            if ($medicine->quantity < $request->quantity[$i]) {
+                return response()->json([
+                    'success' => false,
+                    'message' => "Insufficient stock for {$medicine->name}. Available: {$medicine->quantity}, Requested: {$request->quantity[$i]}"
+                ], 400);
+            }
+
+            // Update medicine stock
+            $medicine->decrement('quantity', $request->quantity[$i]);
+
+            // Prepare bill item data
+            $billItems[] = [
+                'medicine_id' => $request->medicine_id[$i],
+                'medicine_name' => $request->medicine_name[$i],
+                'quantity' => $request->quantity[$i],
+                'unit_price' => $request->price[$i],
+                'total_price' => $request->total[$i]
+            ];
+        }
+
+        // TODO: Save bill and bill items to database when models are created
+        /*
+        $bill = Bill::create($billData);
+        
+        foreach ($billItems as $item) {
+            BillItem::create([
+                'bill_id' => $bill->id,
+                'medicine_id' => $item['medicine_id'],
+                'quantity' => $item['quantity'],
+                'unit_price' => $item['unit_price'],
+                'total_price' => $item['total_price']
+            ]);
+        }
+        */
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Bill created successfully!',
+            'bill_id' => $bill->id,
+            'bill_number' => $billData['bill_number']
+        ]);
+
+    } catch (\Illuminate\Validation\ValidationException $e) {
+        return response()->json([
+            'success' => false,
+            'message' => 'Validation failed',
+            'errors' => $e->errors()
+        ], 422);
+    } catch (\Exception $e) {
+        return response()->json([
+            'success' => false,
+            'message' => 'Error creating bill: ' . $e->getMessage()
+        ], 500);
+    }
+}
+
+public function storeMedicine(Request $request)
+{
+    try {
         $request->validate([
             'name' => 'required|string|max:255',
             'brand' => 'required|string|max:255',
@@ -123,10 +268,17 @@ class PharmacistController extends Controller
         if ($request->hasFile('photo')) {
             $image = $request->file('photo');
             $imageName = time() . '_' . uniqid() . '.' . $image->getClientOriginalExtension();
-            $imagePath = storage_path('app/public/medicines/') . $imageName;
+            
+            // Create directory if it doesn't exist
+            $directory = storage_path('app/public/medicines');
+            if (!File::exists($directory)) {
+                File::makeDirectory($directory, 0755, true);
+            }
+            
+            $imagePath = $directory . '/' . $imageName;
 
-            // Resize and save image
-            Image::make($image)->resize(400, 400, function ($constraint) {
+            // Resize and save image using Intervention Image
+            Image::make($image->getPathname())->resize(400, 400, function ($constraint) {
                 $constraint->aspectRatio();
                 $constraint->upsize();
             })->save($imagePath);
@@ -137,8 +289,13 @@ class PharmacistController extends Controller
         Medicine::create($data);
 
         return redirect()->route('pharmacist.medicines')->with('success', 'Medicine added successfully.');
+        
+    } catch (\Exception $e) {
+        return redirect()->back()
+            ->withInput()
+            ->with('error', 'Error adding medicine: ' . $e->getMessage());
     }
-
+}
     public function editMedicine($id)
     {
         $pharmacist = Auth::guard('pharmacist')->user();

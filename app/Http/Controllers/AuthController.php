@@ -45,7 +45,7 @@ class AuthController extends Controller
             // Check if user needs to setup password (for pharmacists and suppliers)
             if (in_array($userType, ['pharmacist', 'supplier']) && $user->needsPasswordSetup()) {
                 Auth::guard($guard)->logout();
-                return redirect()->route('password.setup', $user->setup_token)
+                return redirect()->route('password.setup.form', $user->setup_token)
                     ->with('info', 'Please setup your password to continue.');
             }
 
@@ -150,5 +150,37 @@ class AuthController extends Controller
 
         $redirectRoute = $guard . '.dashboard';
         return redirect()->route($redirectRoute)->with('success', 'Password setup successful!');
+    }
+
+    /**
+     * Show admin dashboard
+     */
+    public function adminDashboard()
+    {
+        return view('admin.dashboard');
+    }
+
+    /**
+     * Show pharmacist dashboard
+     */
+    public function pharmacistDashboard()
+    {
+        return view('pharmacist.dashboard');
+    }
+
+    /**
+     * Show supplier dashboard
+     */
+    public function supplierDashboard()
+    {
+        return view('supplier.dashboard');
+    }
+
+    /**
+     * Show customer dashboard
+     */
+    public function customerDashboard()
+    {
+        return view('customer.dashboard');
     }
 }
