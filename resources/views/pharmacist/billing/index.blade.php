@@ -1,4 +1,6 @@
-@extends('layouts.app')
+
+@extends('layouts.pharmacist')
+
 
 @section('title', 'Billing Management')
 
@@ -14,7 +16,7 @@
                 <h1 class="page-title">💊 Billing Management</h1>
                 <nav aria-label="breadcrumb">
                     <ol class="breadcrumb">
-                        <li class="breadcrumb-item"><a href="{{ route('pharmacist.dashboard') }}">Dashboard</a></li>
+                        <!-- <li class="breadcrumb-item"><a href="{{ route('pharmacist.dashboard') }}">Dashboard</a></li> -->
                         <li class="breadcrumb-item active" aria-current="page">Billing</li>
                     </ol>
                 </nav>
