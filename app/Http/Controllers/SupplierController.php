@@ -1,337 +1,176 @@
-<?php
+@extends('layouts.pharmacist')
 
-namespace App\Http\Controllers;
+@section('title', 'Orders Management')
 
-use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Facades\Storage;
-use Illuminate\Support\Facades\Mail;
-use App\Models\Medicine;
-use App\Models\Company;
-use App\Models\StockRequest;
-use App\Models\Pharmacist;
-use App\Imports\MedicineImport;
-use App\Exports\MedicineExport;
-use App\Mail\RestockNotificationMail;
-use Maatwebsite\Excel\Facades\Excel;
-
-class SupplierController extends Controller
-{
-    public function __construct()
-    {
-        $this->middleware('auth:supplier');
-    }
-
-    public function dashboard()
-    {
-        $supplier = Auth::guard('supplier')->user();
+@push('styles')
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- Custom Styles -->
+    <style>
+        .gradient-blue { background: linear-gradient(135deg, #3b82f6, #1d4ed8); }
+        .gradient-green { background: linear-gradient(135deg, #10b981, #047857); }
+        .gradient-yellow { background: linear-gradient(135deg, #f59e0b, #d97706); }
+        .gradient-purple { background: linear-gradient(135deg, #8b5cf6, #7c3aed); }
         
-        $data = [
-            'total_medicines' => Medicine::where('supplier_id', $supplier->id)->count(),
-            'active_medicines' => Medicine::where('supplier_id', $supplier->id)->where('is_active', true)->count(),
-            'pending_requests' => StockRequest::where('supplier_id', $supplier->id)->where('status', 'pending')->count(),
-            'fulfilled_requests' => StockRequest::where('supplier_id', $supplier->id)->where('status', 'fulfilled')->count(),
-            'total_stock_value' => Medicine::where('supplier_id', $supplier->id)->selectRaw('sum(quantity * cost_price) as value')->first()->value ?? 0,
-            'low_stock_count' => Medicine::where('supplier_id', $supplier->id)->lowStock()->count(),
-            'recent_requests' => StockRequest::with(['pharmacist', 'medicine'])
-                                             ->where('supplier_id', $supplier->id)
-                                             ->latest()->take(5)->get(),
-            'inventory_by_category' => $this->getInventoryByCategory($supplier->id),
-        ];
-
-        return view('supplier.dashboard', $data);
-    }
-
-    // Medicine Management
-    public function medicines(Request $request)
-    {
-        $supplier = Auth::guard('supplier')->user();
-        $query = Medicine::where('supplier_id', $supplier->id)->with('company');
-
-        if ($request->has('search')) {
-            $search = $request->search;
-            $query->where(function($q) use ($search) {
-                $q->where('name', 'like', "%{$search}%")
-                  ->orWhere('brand', 'like', "%{$search}%")
-                  ->orWhere('generic_name', 'like', "%{$search}%");
-            });
+        .card-shadow {
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
         }
-
-        if ($request->has('category')) {
-            $query->where('category', $request->category);
-        }
-
-        if ($request->has('status')) {
-            if ($request->status === 'low_stock') {
-                $query->lowStock();
-            } elseif ($request->status === 'out_of_stock') {
-                $query->where('quantity', 0);
-            } elseif ($request->status === 'expired') {
-                $query->where('expiry_date', '<', now());
-            }
-        }
-
-        $medicines = $query->latest()->paginate(15);
-        $companies = Company::active()->get();
-        $categories = Medicine::distinct()->pluck('category')->filter();
-
-        return view('supplier.medicines.index', compact('medicines', 'companies', 'categories'));
-    }
-
-    public function createMedicine()
-    {
-        $companies = Company::active()->get();
-        return view('supplier.medicines.create', compact('companies'));
-    }
-
-    public function storeMedicine(Request $request)
-    {
-        $request->validate([
-            'name' => 'required|string|max:255',
-            'brand' => 'required|string|max:255',
-            'generic_name' => 'nullable|string|max:255',
-            'category' => 'required|string|max:100',
-            'description' => 'nullable|string',
-            'quantity' => 'required|integer|min:0',
-            'price' => 'required|numeric|min:0',
-            'cost_price' => 'required|numeric|min:0',
-            'expiry_date' => 'required|date|after:today',
-            'batch_number' => 'required|string|max:100',
-            'company_id' => 'required|exists:companies,id',
-            'minimum_stock' => 'nullable|integer|min:1',
-        ]);
-
-        $supplier = Auth::guard('supplier')->user();
-        $data = $request->all();
-        $data['supplier_id'] = $supplier->id;
-        $data['is_active'] = true;
-
-        Medicine::create($data);
-
-        return redirect()->route('supplier.medicines')->with('success', 'Medicine added successfully.');
-    }
-
-    public function editMedicine($id)
-    {
-        $supplier = Auth::guard('supplier')->user();
-        $medicine = Medicine::where('supplier_id', $supplier->id)->findOrFail($id);
-        $companies = Company::active()->get();
         
-        return view('supplier.medicines.edit', compact('medicine', 'companies'));
-    }
+        .hover-shadow:hover {
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+            transition: box-shadow 0.3s ease;
+        }
+        
+        .fade-in {
+            animation: fadeIn 0.5s ease-in;
+        }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+    </style>
+@endpush
 
-    public function updateMedicine(Request $request, $id)
-    {
-        $supplier = Auth::guard('supplier')->user();
-        $medicine = Medicine::where('supplier_id', $supplier->id)->findOrFail($id);
+@section('content')
+<div class="min-h-screen bg-gray-50">
+    <!-- Header -->
+    <div class="bg-white border-b border-gray-200 card-shadow">
+        <div class="container mx-auto px-6 py-6">
+            <div class="flex items-center justify-between flex-wrap gap-4">
+                <div>
+                    <h1 class="text-3xl font-bold text-gray-900">📋 Orders Management</h1>
+                    <p class="text-gray-600 mt-2">Manage pharmacy orders and prescriptions efficiently</p>
+                </div>
+                <div class="flex space-x-3 flex-wrap">
+                    <button class="gradient-green text-white px-6 py-3 rounded-lg hover:shadow-lg transition-all duration-200 flex items-center font-medium">
+                        <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path>
+                        </svg>
+                        New Order
+                    </button>
+                    <button class="gradient-blue text-white px-6 py-3 rounded-lg hover:shadow-lg transition-all duration-200 flex items-center font-medium">
+                        <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4-4m0 0l-4 4m4-4v12"></path>
+                        </svg>
+                        Export Data
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
 
-        $request->validate([
-            'name' => 'required|string|max:255',
-            'brand' => 'required|string|max:255',
-            'generic_name' => 'nullable|string|max:255',
-            'category' => 'required|string|max:100',
-            'description' => 'nullable|string',
-            'quantity' => 'required|integer|min:0',
-            'price' => 'required|numeric|min:0',
-            'cost_price' => 'required|numeric|min:0',
-            'expiry_date' => 'required|date|after:today',
-            'batch_number' => 'required|string|max:100',
-            'company_id' => 'required|exists:companies,id',
-            'minimum_stock' => 'nullable|integer|min:1',
-        ]);
+    <!-- Main Content -->
+    <div class="container mx-auto px-6 py-8">
+        <!-- Quick Stats -->
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8 fade-in">
+            <div class="gradient-blue rounded-xl p-6 text-white card-shadow hover-shadow transition-all duration-300">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <p class="text-blue-100 text-sm font-medium">Total Orders</p>
+                        <p class="text-3xl font-bold">{{ $orders->total() }}</p>
+                    </div>
+                    <div class="bg-blue-500 bg-opacity-30 rounded-full p-4">
+                        <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z"></path>
+                        </svg>
+                    </div>
+                </div>
+            </div>
 
-        $medicine->update($request->all());
+            <div class="gradient-green rounded-xl p-6 text-white card-shadow hover-shadow transition-all duration-300">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <p class="text-green-100 text-sm font-medium">Completed Orders</p>
+                        <p class="text-3xl font-bold">{{ $orders->where('status', 'delivered')->count() }}</p>
+                    </div>
+                    <div class="bg-green-500 bg-opacity-30 rounded-full p-4">
+                        <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                        </svg>
+                    </div>
+                </div>
+            </div>
 
-        return redirect()->route('supplier.medicines')->with('success', 'Medicine updated successfully.');
-    }
+            <div class="gradient-yellow rounded-xl p-6 text-white card-shadow hover-shadow transition-all duration-300">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <p class="text-yellow-100 text-sm font-medium">Pending Orders</p>
+                        <p class="text-3xl font-bold">{{ $orders->where('status', 'pending')->count() }}</p>
+                    </div>
+                    <div class="bg-yellow-500 bg-opacity-30 rounded-full p-4">
+                        <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                        </svg>
+                    </div>
+                </div>
+            </div>
 
-    public function deleteMedicine($id)
-    {
-        $supplier = Auth::guard('supplier')->user();
-        $medicine = Medicine::where('supplier_id', $supplier->id)->findOrFail($id);
-        $medicine->delete();
+            <div class="gradient-purple rounded-xl p-6 text-white card-shadow hover-shadow transition-all duration-300">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <p class="text-purple-100 text-sm font-medium">Today's Orders</p>
+                        <p class="text-3xl font-bold">{{ $orders->where('created_at', '>=', today())->count() }}</p>
+                    </div>
+                    <div class="bg-purple-500 bg-opacity-30 rounded-full p-4">
+                        <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
+                        </svg>
+                    </div>
+                </div>
+            </div>
+        </div>
 
-        return redirect()->route('supplier.medicines')->with('success', 'Medicine deleted successfully.');
-    }
-
-    // Bulk Upload
-    public function bulkUpload()
-    {
-        $companies = Company::active()->get();
-        return view('supplier.medicines.bulk-upload', compact('companies'));
-    }
-
-    public function processBulkUpload(Request $request)
-    {
-        $request->validate([
-            'file' => 'required|mimes:xlsx,xls,csv|max:10240', // 10MB max
-        ]);
-
-        try {
-            $supplier = Auth::guard('supplier')->user();
+        <!-- Orders Table -->
+        <div class="bg-white rounded-xl border border-gray-200 card-shadow overflow-hidden">
+            <div class="p-6 border-b border-gray-200">
+                <h3 class="text-xl font-semibold text-gray-900">All Orders</h3>
+            </div>
             
-            Excel::import(new MedicineImport($supplier->id), $request->file('file'));
-
-            return redirect()->route('supplier.medicines')->with('success', 'Medicines imported successfully.');
-        } catch (\Exception $e) {
-            return back()->withErrors(['file' => 'Error importing file: ' . $e->getMessage()]);
-        }
-    }
-
-    public function downloadTemplate()
-    {
-        $headers = [
-            'name',
-            'brand',
-            'generic_name',
-            'category',
-            'description',
-            'quantity',
-            'price',
-            'cost_price',
-            'expiry_date',
-            'batch_number',
-            'company_name',
-            'minimum_stock'
-        ];
-
-        $sampleData = [
-            [
-                'Paracetamol 500mg',
-                'Crocin',
-                'Acetaminophen',
-                'Analgesic',
-                'Pain relief and fever reducer',
-                '100',
-                '2.50',
-                '2.00',
-                '2025-12-31',
-                'BATCH001',
-                'GSK',
-                '50'
-            ]
-        ];
-
-        $data = array_merge([$headers], $sampleData);
-
-        return response()->streamDownload(function() use ($data) {
-            $file = fopen('php://output', 'w');
-            foreach ($data as $row) {
-                fputcsv($file, $row);
-            }
-            fclose($file);
-        }, 'medicine_template.csv', [
-            'Content-Type' => 'text/csv',
-        ]);
-    }
-
-    // Company Management
-    public function companies()
-    {
-        $companies = Company::latest()->paginate(15);
-        return view('supplier.companies.index', compact('companies'));
-    }
-
-    public function storeCompany(Request $request)
-    {
-        $request->validate([
-            'name' => 'required|string|max:255|unique:companies',
-            'email' => 'nullable|email|max:255',
-            'phone' => 'nullable|string|max:20',
-            'address' => 'nullable|string|max:500',
-            'city' => 'nullable|string|max:100',
-            'state' => 'nullable|string|max:100',
-            'country' => 'nullable|string|max:100',
-            'website' => 'nullable|url|max:255',
-            'description' => 'nullable|string',
-        ]);
-
-        Company::create($request->all() + ['is_active' => true]);
-
-        return response()->json(['success' => true, 'message' => 'Company added successfully.']);
-    }
-
-    // Stock Requests
-    public function stockRequests(Request $request)
-    {
-        $supplier = Auth::guard('supplier')->user();
-        $query = StockRequest::with(['pharmacist', 'medicine'])
-                           ->where('supplier_id', $supplier->id);
-
-        if ($request->has('status')) {
-            $query->where('status', $request->status);
-        }
-
-        $stockRequests = $query->latest()->paginate(15);
-
-        return view('supplier.stock-requests', compact('stockRequests'));
-    }
-
-    public function fulfillStockRequest(Request $request, $id)
-    {
-        $request->validate([
-            'fulfilled_quantity' => 'required|integer|min:1',
-            'supplier_notes' => 'nullable|string|max:500',
-        ]);
-
-        $supplier = Auth::guard('supplier')->user();
-        $stockRequest = StockRequest::where('supplier_id', $supplier->id)->findOrFail($id);
-
-        $stockRequest->update([
-            'fulfilled_quantity' => $request->fulfilled_quantity,
-            'supplier_notes' => $request->supplier_notes,
-            'status' => StockRequest::STATUS_FULFILLED,
-            'fulfilled_at' => now(),
-        ]);
-
-        // Update medicine stock if medicine belongs to supplier
-        $medicine = Medicine::where('supplier_id', $supplier->id)
-                          ->where('id', $stockRequest->medicine_id)
-                          ->first();
-        
-        if ($medicine) {
-            $medicine->increment('quantity', $request->fulfilled_quantity);
-        }
-
-        // Send notification email to pharmacist
-        Mail::to($stockRequest->pharmacist->email)
-            ->send(new RestockNotificationMail($stockRequest, $medicine));
-
-        return response()->json(['success' => true, 'message' => 'Stock request fulfilled successfully.']);
-    }
-
-    // Reports
-    public function inventoryReport(Request $request)
-    {
-        $supplier = Auth::guard('supplier')->user();
-        
-        $data = [
-            'total_medicines' => Medicine::where('supplier_id', $supplier->id)->count(),
-            'active_medicines' => Medicine::where('supplier_id', $supplier->id)->where('is_active', true)->count(),
-            'low_stock_medicines' => Medicine::where('supplier_id', $supplier->id)->lowStock()->get(),
-            'expired_medicines' => Medicine::where('supplier_id', $supplier->id)->where('expiry_date', '<', now())->get(),
-            'expiring_medicines' => Medicine::where('supplier_id', $supplier->id)->expiring(30)->get(),
-            'total_stock_value' => Medicine::where('supplier_id', $supplier->id)->selectRaw('sum(quantity * cost_price) as value')->first()->value ?? 0,
-            'categories' => Medicine::where('supplier_id', $supplier->id)->selectRaw('category, count(*) as count, sum(quantity) as total_quantity, sum(quantity * cost_price) as total_value')->groupBy('category')->get(),
-        ];
-
-        return view('supplier.reports.inventory', compact('data'));
-    }
-
-    public function exportInventoryReport(Request $request)
-    {
-        $supplier = Auth::guard('supplier')->user();
-        return Excel::download(new MedicineExport($supplier->id), 'inventory_report.xlsx');
-    }
-
-    // Helper Methods
-    private function getInventoryByCategory($supplierId)
-    {
-        return Medicine::where('supplier_id', $supplierId)
-                      ->selectRaw('category, count(*) as count, sum(quantity) as total_quantity')
-                      ->groupBy('category')
-                      ->orderBy('count', 'desc')
-                      ->take(5)
-                      ->get();
-    }
-}
+            <div class="overflow-x-auto">
+                <table class="w-full">
+                    <thead class="bg-gray-50">
+                        <tr>
+                            <th class="text-left py-4 px-6 text-gray-700 font-semibold">Order ID</th>
+                            <th class="text-left py-4 px-6 text-gray-700 font-semibold">Customer</th>
+                            <th class="text-left py-4 px-6 text-gray-700 font-semibold">Total</th>
+                            <th class="text-left py-4 px-6 text-gray-700 font-semibold">Status</th>
+                            <th class="text-left py-4 px-6 text-gray-700 font-semibold">Date</th>
+                            <th class="text-left py-4 px-6 text-gray-700 font-semibold">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-gray-200">
+                        @forelse($orders as $order)
+                            <tr class="hover:bg-gray-50 transition-colors duration-200">
+                                <td class="py-4 px-6 text-gray-900 font-semibold">#{{ $order->id }}</td>
+                                <td class="py-4 px-6 text-gray-900">{{ $order->customer->name ?? 'N/A' }}</td>
+                                <td class="py-4 px-6 text-gray-900 font-semibold">₹{{ number_format($order->total_amount, 2) }}</td>
+                                <td class="py-4 px-6">
+                                    <span class="px-3 py-1 rounded-full text-xs font-medium bg-{{ $order->status_color ?? 'gray' }}-100 text-{{ $order->status_color ?? 'gray' }}-800">{{ ucfirst($order->status) }}</span>
+                                </td>
+                                <td class="py-4 px-6 text-gray-700">{{ $order->created_at->format('d M, Y') }}</td>
+                                <td class="py-4 px-6">
+                                    <a href="#" class="text-blue-600 hover:underline">View</a>
+                                </td>
+                            </tr>
+                        @empty
+                            <tr>
+                                <td colspan="6" class="text-center py-12 text-gray-500">
+                                    <i class="fas fa-box-open fa-3x mb-3"></i>
+                                    <p>No orders found.</p>
+                                </td>
+                            </tr>
+                        @endforelse
+                    </tbody>
+                </table>
+            </div>
+             @if($orders->hasPages())
+                <div class="px-6 py-4 border-t border-gray-200 bg-gray-50">
+                    {{ $orders->links() }}
+                </div>
+            @endif
+        </div>
+    </div>
+</div>
+@endsection

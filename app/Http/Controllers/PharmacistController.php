@@ -13,6 +13,8 @@ use App\Models\OrderItem;
 use App\Models\Customer;
 use App\Models\StockRequest;
 use App\Models\Supplier;
+use App\Models\Bill;
+use App\Models\BillItem;
 use App\Mail\StockAlertMail;
 use App\Exports\MedicineExport;
 use App\Exports\SalesExport;
@@ -116,115 +118,81 @@ class PharmacistController extends Controller
     return response()->json([]);
 }
 
- public function billingIndex()
+    public function billingIndex()
 {
     $pharmacist = Auth::guard('pharmacist')->user();
-    $bills = collect([]); // Replace with actual bills query
     
-    return view('pharmacist.billing', compact('bills'));
+    // Fetch bills for the current pharmacist
+    $bills = Bill::where('pharmacist_id', $pharmacist->id)
+                 ->latest()
+                 ->paginate(15); 
+    
+    return view('pharmacist.billing.index', compact('bills'));
 }
 
 public function storeBilling(Request $request) 
 {
     try {
-        $request->validate([
+        $validatedData = $request->validate([
             'patient_name' => 'required|string|max:255',
             'patient_phone' => 'nullable|string|max:20',
-            'patient_age' => 'nullable|integer|min:1|max:120',
             'patient_address' => 'nullable|string',
-            'medicine_name' => 'required|array',
-            'medicine_name.*' => 'required|string',
-            'medicine_id' => 'required|array',
-            'medicine_id.*' => 'required|exists:medicines,id',
-            'quantity' => 'required|array',
-            'quantity.*' => 'required|integer|min:1',
-            'price' => 'required|array',
-            'price.*' => 'required|numeric|min:0',
-            'total' => 'required|array',
-            'total.*' => 'required|numeric|min:0',
-            'discount' => 'nullable|numeric|min:0|max:100',
-            'tax' => 'nullable|numeric|min:0',
-            'grand_total' => 'required|numeric|min:0'
+            'items' => 'required|array',
+            'items.*.medicine_id' => 'required|exists:medicines,id',
+            'items.*.quantity' => 'required|integer|min:1',
+            'items.*.price' => 'required|numeric',
+            'items.*.total' => 'required|numeric',
+            'discount_percentage' => 'nullable|numeric|min:0',
+            'total_amount' => 'required|numeric|min:0'
         ]);
 
         $pharmacist = Auth::guard('pharmacist')->user();
         
-        // Calculate subtotal from items
-        $subtotal = array_sum($request->total);
-        $discountAmount = ($subtotal * ($request->discount ?? 0)) / 100;
-        $taxableAmount = $subtotal - $discountAmount;
-        $taxAmount = ($taxableAmount * ($request->tax ?? 0)) / 100;
-        
-        // Create bill data
-        $billData = [
-            'bill_number' => 'BILL-' . date('Ymd') . '-' . str_pad(rand(1, 9999), 4, '0', STR_PAD_LEFT),
+        $subtotal = collect($validatedData['items'])->sum('total');
+        $discountAmount = ($subtotal * ($validatedData['discount_percentage'] ?? 0)) / 100;
+
+        // Create the Bill
+        $bill = Bill::create([
             'pharmacist_id' => $pharmacist->id,
-            'patient_name' => $request->patient_name,
-            'patient_phone' => $request->patient_phone,
-            'patient_age' => $request->patient_age,
-            'patient_address' => $request->patient_address,
+            'bill_number' => 'BILL-' . time(),
+            'patient_name' => $validatedData['patient_name'],
+            'patient_phone' => $validatedData['patient_phone'],
+            'patient_address' => $validatedData['patient_address'],
             'subtotal' => $subtotal,
-            'discount_percent' => $request->discount ?? 0,
+            'discount_percentage' => $validatedData['discount_percentage'] ?? 0,
             'discount_amount' => $discountAmount,
-            'tax_percent' => $request->tax ?? 0,
-            'tax_amount' => $taxAmount,
-            'total_amount' => $request->grand_total,
-            'status' => 'completed',
-            'created_at' => now(),
-            'updated_at' => now()
-        ];
+            'total_amount' => $validatedData['total_amount'],
+            'status' => 'paid', // Default to 'paid' for in-person billing
+        ]);
 
-        // For now, we'll create a temporary bill object
-        // TODO: Replace with actual Bill model when created
-        $bill = (object) $billData;
-        $bill->id = rand(1000, 9999);
+        // Create bill items and update medicine stock
+        foreach ($validatedData['items'] as $itemData) {
+            $medicine = Medicine::find($itemData['medicine_id']);
+            $quantity = $itemData['quantity'];
 
-        // Process each medicine item
-        $billItems = [];
-        for ($i = 0; $i < count($request->medicine_id); $i++) {
-            $medicine = Medicine::find($request->medicine_id[$i]);
-            
-            // Check if enough stock is available
-            if ($medicine->quantity < $request->quantity[$i]) {
+            if ($medicine->quantity < $quantity) {
+                $bill->delete(); // Rollback bill creation
                 return response()->json([
                     'success' => false,
-                    'message' => "Insufficient stock for {$medicine->name}. Available: {$medicine->quantity}, Requested: {$request->quantity[$i]}"
+                    'message' => "Insufficient stock for {$medicine->name}."
                 ], 400);
             }
 
-            // Update medicine stock
-            $medicine->decrement('quantity', $request->quantity[$i]);
-
-            // Prepare bill item data
-            $billItems[] = [
-                'medicine_id' => $request->medicine_id[$i],
-                'medicine_name' => $request->medicine_name[$i],
-                'quantity' => $request->quantity[$i],
-                'unit_price' => $request->price[$i],
-                'total_price' => $request->total[$i]
-            ];
-        }
-
-        // TODO: Save bill and bill items to database when models are created
-        /*
-        $bill = Bill::create($billData);
-        
-        foreach ($billItems as $item) {
             BillItem::create([
                 'bill_id' => $bill->id,
-                'medicine_id' => $item['medicine_id'],
-                'quantity' => $item['quantity'],
-                'unit_price' => $item['unit_price'],
-                'total_price' => $item['total_price']
+                'medicine_id' => $itemData['medicine_id'],
+                'quantity' => $quantity,
+                'price' => $itemData['price'],
+                'total' => $itemData['total'],
             ]);
+
+            $medicine->decrement('quantity', $quantity);
         }
-        */
 
         return response()->json([
             'success' => true,
             'message' => 'Bill created successfully!',
-            'bill_id' => $bill->id,
-            'bill_number' => $billData['bill_number']
+            'bill_id' => $bill->id
         ]);
 
     } catch (\Illuminate\Validation\ValidationException $e) {
@@ -240,6 +208,212 @@ public function storeBilling(Request $request)
         ], 500);
     }
 }
+
+//  public function billingIndex()
+// {
+//     $pharmacist = Auth::guard('pharmacist')->user();
+//     $bills = collect([]); // Replace with actual bills query
+    
+//     return view('pharmacist.billing', compact('bills'));
+// }
+
+//     public function storeBilling(Request $request)
+// {
+//     try {
+//         $validatedData = $request->validate([
+//             'patient_name' => 'required|string|max:255',
+//             'patient_phone' => 'nullable|string|max:20',
+//             'patient_age' => 'nullable|integer|min:1|max:120',
+//             'medicine_id' => 'required|array',
+//             'medicine_id.*' => 'required|exists:medicines,id',
+//             'quantity' => 'required|array',
+//             'quantity.*' => 'required|integer|min:1',
+//             'price' => 'required|array',
+//             'total' => 'required|array',
+//             'discount' => 'nullable|numeric|min:0',
+//             'tax' => 'nullable|numeric|min:0',
+//             'grand_total' => 'required|numeric|min:0'
+//         ]);
+
+//         $pharmacist = Auth::guard('pharmacist')->user();
+        
+//         $customer = Customer::firstOrCreate(
+//             ['contact_number' => $validatedData['patient_phone']],
+//             ['name' => $validatedData['patient_name']]
+//         );
+
+//         $order = Order::create([
+//             'customer_id' => $customer->id,
+//             'pharmacist_id' => $pharmacist->id,
+//             'order_number' => 'BILL-' . time(),
+//             'status' => 'delivered', // Corrected from 'completed'
+//             'payment_status' => 'paid',
+//             'payment_method' => 'cash',
+//             'subtotal' => array_sum($validatedData['total']),
+//             'discount_amount' => (array_sum($validatedData['total']) * ($validatedData['discount'] ?? 0)) / 100,
+//             'tax_amount' => ((array_sum($validatedData['total']) - (array_sum($validatedData['total']) * ($validatedData['discount'] ?? 0)) / 100) * ($validatedData['tax'] ?? 0)) / 100,
+//             'total_amount' => $validatedData['grand_total'],
+//         ]);
+
+//         foreach ($validatedData['medicine_id'] as $key => $medicineId) {
+//             $medicine = Medicine::find($medicineId);
+//             $quantity = $validatedData['quantity'][$key];
+
+//             if ($medicine->quantity < $quantity) {
+//                 $order->delete(); // Rollback order
+//                 return response()->json([
+//                     'success' => false,
+//                     'message' => "Insufficient stock for {$medicine->name}. Only {$medicine->quantity} available."
+//                 ], 400);
+//             }
+
+//             OrderItem::create([
+//                 'order_id' => $order->id,
+//                 'medicine_id' => $medicineId,
+//                 'quantity' => $quantity,
+//                 'price' => $validatedData['price'][$key],
+//                 'total' => $validatedData['total'][$key],
+//             ]);
+
+//             $medicine->decrement('quantity', $quantity);
+//         }
+
+//         return response()->json([
+//             'success' => true,
+//             'message' => 'Bill created successfully!',
+//             'order_id' => $order->id
+//         ]);
+
+//     } catch (\Illuminate\Validation\ValidationException $e) {
+//         return response()->json([
+//             'success' => false,
+//             'message' => 'Validation failed',
+//             'errors' => $e->errors()
+//         ], 422);
+//     } catch (\Exception $e) {
+//         return response()->json([
+//             'success' => false,
+//             'message' => 'Error creating bill: ' . $e->getMessage()
+//         ], 500);
+//     }
+// }
+
+// public function storeBilling(Request $request) 
+// {
+//     try {
+//         $request->validate([
+//             'patient_name' => 'required|string|max:255',
+//             'patient_phone' => 'nullable|string|max:20',
+//             'patient_age' => 'nullable|integer|min:1|max:120',
+//             'patient_address' => 'nullable|string',
+//             'medicine_name' => 'required|array',
+//             'medicine_name.*' => 'required|string',
+//             'medicine_id' => 'required|array',
+//             'medicine_id.*' => 'required|exists:medicines,id',
+//             'quantity' => 'required|array',
+//             'quantity.*' => 'required|integer|min:1',
+//             'price' => 'required|array',
+//             'price.*' => 'required|numeric|min:0',
+//             'total' => 'required|array',
+//             'total.*' => 'required|numeric|min:0',
+//             'discount' => 'nullable|numeric|min:0|max:100',
+//             'tax' => 'nullable|numeric|min:0',
+//             'grand_total' => 'required|numeric|min:0'
+//         ]);
+
+//         $pharmacist = Auth::guard('pharmacist')->user();
+        
+//         // Calculate subtotal from items
+//         $subtotal = array_sum($request->total);
+//         $discountAmount = ($subtotal * ($request->discount ?? 0)) / 100;
+//         $taxableAmount = $subtotal - $discountAmount;
+//         $taxAmount = ($taxableAmount * ($request->tax ?? 0)) / 100;
+        
+//         // Create bill data
+//         $billData = [
+//             'bill_number' => 'BILL-' . date('Ymd') . '-' . str_pad(rand(1, 9999), 4, '0', STR_PAD_LEFT),
+//             'pharmacist_id' => $pharmacist->id,
+//             'patient_name' => $request->patient_name,
+//             'patient_phone' => $request->patient_phone,
+//             'patient_age' => $request->patient_age,
+//             'patient_address' => $request->patient_address,
+//             'subtotal' => $subtotal,
+//             'discount_percent' => $request->discount ?? 0,
+//             'discount_amount' => $discountAmount,
+//             'tax_percent' => $request->tax ?? 0,
+//             'tax_amount' => $taxAmount,
+//             'total_amount' => $request->grand_total,
+//             'status' => 'completed',
+//             'created_at' => now(),
+//             'updated_at' => now()
+//         ];
+
+//         // For now, we'll create a temporary bill object
+//         // TODO: Replace with actual Bill model when created
+//         $bill = (object) $billData;
+//         $bill->id = rand(1000, 9999);
+
+//         // Process each medicine item
+//         $billItems = [];
+//         for ($i = 0; $i < count($request->medicine_id); $i++) {
+//             $medicine = Medicine::find($request->medicine_id[$i]);
+            
+//             // Check if enough stock is available
+//             if ($medicine->quantity < $request->quantity[$i]) {
+//                 return response()->json([
+//                     'success' => false,
+//                     'message' => "Insufficient stock for {$medicine->name}. Available: {$medicine->quantity}, Requested: {$request->quantity[$i]}"
+//                 ], 400);
+//             }
+
+//             // Update medicine stock
+//             $medicine->decrement('quantity', $request->quantity[$i]);
+
+//             // Prepare bill item data
+//             $billItems[] = [
+//                 'medicine_id' => $request->medicine_id[$i],
+//                 'medicine_name' => $request->medicine_name[$i],
+//                 'quantity' => $request->quantity[$i],
+//                 'unit_price' => $request->price[$i],
+//                 'total_price' => $request->total[$i]
+//             ];
+//         }
+
+//         // TODO: Save bill and bill items to database when models are created
+//         /*
+//         $bill = Bill::create($billData);
+        
+//         foreach ($billItems as $item) {
+//             BillItem::create([
+//                 'bill_id' => $bill->id,
+//                 'medicine_id' => $item['medicine_id'],
+//                 'quantity' => $item['quantity'],
+//                 'unit_price' => $item['unit_price'],
+//                 'total_price' => $item['total_price']
+//             ]);
+//         }
+//         */
+
+//         return response()->json([
+//             'success' => true,
+//             'message' => 'Bill created successfully!',
+//             'bill_id' => $bill->id,
+//             'bill_number' => $billData['bill_number']
+//         ]);
+
+//     } catch (\Illuminate\Validation\ValidationException $e) {
+//         return response()->json([
+//             'success' => false,
+//             'message' => 'Validation failed',
+//             'errors' => $e->errors()
+//         ], 422);
+//     } catch (\Exception $e) {
+//         return response()->json([
+//             'success' => false,
+//             'message' => 'Error creating bill: ' . $e->getMessage()
+//         ], 500);
+//     }
+// }
 
 public function storeMedicine(Request $request)
 {
@@ -529,7 +703,17 @@ public function storeMedicine(Request $request)
 
         return view('pharmacist.billing.invoice', compact('order'));
     }
+    // In app/Http/Controllers/PharmacistController.php
 
+    public function showOrder($id)
+    {
+        $pharmacist = Auth::guard('pharmacist')->user();
+        $order = Order::with(['customer', 'items.medicine'])
+                    ->where('pharmacist_id', $pharmacist->id)
+                    ->findOrFail($id);
+
+        return view('pharmacist.orders.show', compact('order'));
+    }
     public function downloadInvoice($id)
     {
         $pharmacist = Auth::guard('pharmacist')->user();
@@ -542,25 +726,56 @@ public function storeMedicine(Request $request)
     }
 
     // Orders
+    // public function orders(Request $request)
+    // {
+    //     $pharmacist = Auth::guard('pharmacist')->user();
+    //     $query = Order::with(['customer', 'items'])
+    //                  ->where('pharmacist_id', $pharmacist->id);
+
+    //     if ($request->has('status')) {
+    //         $query->where('status', $request->status);
+    //     }
+
+    //     if ($request->has('payment_status')) {
+    //         $query->where('payment_status', $request->payment_status);
+    //     }
+
+    //     $orders = $query->latest()->paginate(15);
+
+    //     return view('pharmacist.orders.index', compact('orders'));
+    // }
     public function orders(Request $request)
-    {
-        $pharmacist = Auth::guard('pharmacist')->user();
-        $query = Order::with(['customer', 'items'])
+{
+    $pharmacist = Auth::guard('pharmacist')->user();
+
+    // Base query for calculating stats
+    $statsQuery = Order::where('pharmacist_id', $pharmacist->id);
+
+    // Calculate stats before pagination
+    $totalOrders = (clone $statsQuery)->count();
+    $deliveredOrders = (clone $statsQuery)->where('status', 'delivered')->count();
+    $pendingOrders = (clone $statsQuery)->where('status', 'pending')->count();
+    $todayOrders = (clone $statsQuery)->whereDate('created_at', today())->count();
+
+    // Main query for fetching the list of orders
+    $ordersQuery = Order::with(['customer', 'items'])
                      ->where('pharmacist_id', $pharmacist->id);
 
-        if ($request->has('status')) {
-            $query->where('status', $request->status);
-        }
-
-        if ($request->has('payment_status')) {
-            $query->where('payment_status', $request->payment_status);
-        }
-
-        $orders = $query->latest()->paginate(15);
-
-        return view('pharmacist.orders.index', compact('orders'));
+    if ($request->has('status')) {
+        $ordersQuery->where('status', $request->status);
     }
 
+    $orders = $ordersQuery->latest()->paginate(15);
+
+    // Pass all the data to the view
+    return view('pharmacist.orders.index', compact(
+        'orders',
+        'totalOrders',
+        'deliveredOrders',
+        'pendingOrders',
+        'todayOrders'
+    ));
+}
     public function updateOrderStatus(Request $request, $id)
     {
         $request->validate([

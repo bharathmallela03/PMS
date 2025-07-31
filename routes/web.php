@@ -33,7 +33,7 @@ Route::post('/register', [AuthController::class, 'register']);
 
 // Password Setup for Invited Users
 // Password setup routes
-Route::get('/setup-password/{token}', [AuthController::class, 'showPasswordSetup'])->name('password.setup.form');
+Route::get('/setup-password/{token}', [AuthController::class, 'showPasswordSetup'])->name('password.setup');
 Route::post('/setup-password', [AuthController::class, 'setupPassword'])->name('password.setup.store');
 
 // Admin Routes
@@ -47,6 +47,7 @@ Route::prefix('admin')->middleware(['auth:admin'])->group(function () {
     Route::get('/pharmacists/{id}/edit', [AdminController::class, 'editPharmacist'])->name('admin.pharmacists.edit');
     Route::put('/pharmacists/{id}', [AdminController::class, 'updatePharmacist'])->name('admin.pharmacists.update');
     Route::delete('/pharmacists/{id}', [AdminController::class, 'deletePharmacist'])->name('admin.pharmacists.delete');
+    Route::post('/pharmacists/{id}/resend-setup-mail', [AdminController::class, 'resendPasswordSetupMail'])->name('admin.pharmacists.resend-setup-mail');
     
     // Supplier Management
     Route::get('/suppliers', [AdminController::class, 'suppliers'])->name('admin.suppliers');
@@ -85,7 +86,7 @@ Route::prefix('pharmacist')->middleware(['auth:pharmacist'])->group(function () 
     
     // Billing
    Route::get('/billing', [PharmacistController::class, 'billing'])->name('pharmacist.billing');
-    Route::post('/billing/store', [PharmacistController::class, 'storeBill'])->name('pharmacist.billing.store');
+    Route::post('/billing/store', [PharmacistController::class, 'storeBilling'])->name('pharmacist.billing.store');
     Route::get('/billing/{id}', [PharmacistController::class, 'showBill'])->name('pharmacist.billing.show');
     Route::get('/billing/{id}/print', [PharmacistController::class, 'printBill'])->name('pharmacist.billing.print');
     Route::put('/billing/{id}/status', [PharmacistController::class, 'updateBillStatus'])->name('pharmacist.billing.status');
@@ -94,6 +95,10 @@ Route::prefix('pharmacist')->middleware(['auth:pharmacist'])->group(function () 
     
     // Orders
     Route::get('/orders', [PharmacistController::class, 'orders'])->name('pharmacist.orders');
+    Route::put('/orders/{id}/status', [PharmacistController::class, 'updateOrderStatus'])->name('pharmacist.orders.status');
+
+    Route::get('/orders/{id}', [PharmacistController::class, 'showOrder'])->name('pharmacist.orders.show');
+    Route::get('/orders/{id}/invoice/download', [PharmacistController::class, 'downloadInvoice'])->name('pharmacist.billing.invoice.download');
     Route::put('/orders/{id}/status', [PharmacistController::class, 'updateOrderStatus'])->name('pharmacist.orders.status');
     
     // Reports
@@ -155,6 +160,12 @@ Route::prefix('customer')->middleware(['auth:customer'])->group(function () {
     Route::get('/checkout', [CustomerController::class, 'checkout'])->name('customer.checkout');
     Route::post('/checkout', [CustomerController::class, 'placeOrder'])->name('customer.checkout.place-order');
     
+
+    Route::post('/place-order', [CustomerController::class, 'placeOrder'])->name('customer.order.place');
+    Route::get('/orders/{id}/invoice/download', [CustomerController::class, 'downloadInvoice'])->name('customer.orders.invoice.download');
+    Route::post('/profile/update', [CustomerController::class, 'updateProfile'])->name('customer.profile.update');
+    Route::post('/password/update', [CustomerController::class, 'updatePassword'])->name('customer.password.update');
+
     // Orders
     Route::get('/orders', [CustomerController::class, 'orders'])->name('customer.orders');
     Route::get('/orders/{id}', [CustomerController::class, 'showOrder'])->name('customer.orders.show');

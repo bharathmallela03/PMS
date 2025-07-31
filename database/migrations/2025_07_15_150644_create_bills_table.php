@@ -4,12 +4,14 @@ use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
 
-return new class extends Migration
+class CreateBillsTable extends Migration
 {
     /**
      * Run the migrations.
+     *
+     * @return void
      */
-    public function up(): void
+    public function up()
     {
         Schema::create('bills', function (Blueprint $table) {
             $table->id();
@@ -22,22 +24,20 @@ return new class extends Migration
             $table->decimal('discount_amount', 10, 2)->default(0);
             $table->decimal('total_amount', 10, 2);
             $table->enum('status', ['pending', 'paid', 'overdue'])->default('pending');
-            $table->unsignedBigInteger('pharmacist_id')->nullable();
+            $table->foreignId('pharmacist_id')->nullable()->constrained('pharmacists')->onDelete('set null');
             $table->text('notes')->nullable();
             $table->timestamps();
             $table->softDeletes();
-            
-            $table->foreign('pharmacist_id')->references('id')->on('users')->onDelete('set null');
-            $table->index(['status', 'created_at']);
-            $table->index('patient_name');
         });
     }
 
     /**
      * Reverse the migrations.
+     *
+     * @return void
      */
-    public function down(): void
+    public function down()
     {
         Schema::dropIfExists('bills');
     }
-};
+}

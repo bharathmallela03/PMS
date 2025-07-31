@@ -29,6 +29,11 @@
         background-color: #f9fafb;
         border-bottom: 1px solid #e5e7eb;
     }
+    
+    .gradient-blue { background: linear-gradient(135deg, #3b82f6, #1d4ed8); }
+    .gradient-green { background: linear-gradient(135deg, #10b981, #047857); }
+    .gradient-yellow { background: linear-gradient(135deg, #f59e0b, #d97706); }
+    .gradient-purple { background: linear-gradient(135deg, #8b5cf6, #7c3aed); }
 
     .medicine-search-container {
         position: relative;
@@ -102,6 +107,26 @@
         <h1 class="page-title">💊 Billing Management</h1>
     </div>
 
+    <!-- Quick Stats Section -->
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-4">
+        <div class="gradient-blue rounded-xl p-6 text-white shadow-lg">
+            <p class="text-sm font-medium">Total Bills</p>
+            <p class="text-3xl font-bold">{{ $totalOrders ?? 0 }}</p>
+        </div>
+        <div class="gradient-green rounded-xl p-6 text-white shadow-lg">
+            <p class="text-sm font-medium">Completed Bills</p>
+            <p class="text-3xl font-bold">{{ $completedOrders ?? 0 }}</p>
+        </div>
+        <div class="gradient-yellow rounded-xl p-6 text-white shadow-lg">
+            <p class="text-sm font-medium">Pending Bills</p>
+            <p class="text-3xl font-bold">{{ $pendingOrders ?? 0 }}</p>
+        </div>
+        <div class="gradient-purple rounded-xl p-6 text-white shadow-lg">
+            <p class="text-sm font-medium">Today's Bills</p>
+            <p class="text-3xl font-bold">{{ $todayOrders ?? 0 }}</p>
+        </div>
+    </div>
+
     <div class="card">
         <div class="card-header d-flex justify-content-between align-items-center bg-light">
             <h3 class="card-title mb-0">Billing Records</h3>
@@ -125,21 +150,25 @@
                     <tbody>
                         @forelse($bills ?? [] as $bill)
                         <tr>
-                            <td><strong>{{ $bill->bill_number }}</strong></td>
-                            <td>{{ $bill->patient_name }}</td>
+                            <td><strong>{{ $bill->order_number ?? $bill->bill_number }}</strong></td>
+                            <td>{{ $bill->customer->name ?? $bill->patient_name }}</td>
                             <td>{{ $bill->created_at->format('M d, Y') }}</td>
                             <td><strong>&#8377;{{ number_format($bill->total_amount, 2) }}</strong></td>
                             <td>
-                                <span class="badge {{ $bill->status_badge }}">{{ ucfirst($bill->status) }}</span>
+                                @if($bill->status == 'completed' || $bill->status == 'delivered')
+                                    <span class="badge bg-success">Completed</span>
+                                @else
+                                    <span class="badge bg-warning">Pending</span>
+                                @endif
                             </td>
                             <td>
-                                <a href="#" class="btn btn-sm btn-outline-primary">View</a>
+                                <a href="{{ route('pharmacist.orders.show', $bill->id) }}" class="btn btn-sm btn-outline-primary">View</a>
                             </td>
                         </tr>
                         @empty
                         <tr>
                             <td colspan="6" class="text-center py-5">
-                                <p class="text-muted">No bills found. Create a new bill to get started.</p>
+                                <p class="text-muted">No bills found.</p>
                             </td>
                         </tr>
                         @endforelse
@@ -177,8 +206,8 @@
                             <input type="tel" class="form-control" name="patient_phone">
                         </div>
                         <div class="col-md-4">
-                            <label class="form-label">Address</label>
-                            <input type="text" class="form-control" name="patient_address">
+                            <label class="form-label">Age</label>
+                            <input type="number" class="form-control" name="patient_age">
                         </div>
                     </div>
                     
@@ -204,14 +233,18 @@
                                 </div>
                                 <div class="total-row">
                                     <span>Discount (%):</span>
-                                    <input type="number" class="form-control form-control-sm" style="width: 80px;" id="discount" name="discount_percentage" value="0" min="0">
+                                    <input type="number" class="form-control form-control-sm" style="width: 80px;" id="discount" name="discount" value="0" min="0">
+                                </div>
+                                <div class="total-row">
+                                    <span>Tax (%):</span>
+                                    <input type="number" class="form-control form-control-sm" style="width: 80px;" id="tax" name="tax" value="0" min="0">
                                 </div>
                                 <div class="total-row">
                                     <strong>Grand Total:</strong>
                                     <strong id="grandTotalAmount">&#8377;0.00</strong>
                                 </div>
                             </div>
-                            <input type="hidden" id="grandTotal" name="total_amount">
+                            <input type="hidden" id="grandTotal" name="grand_total">
                         </div>
                     </div>
                 </form>
@@ -237,22 +270,27 @@ document.addEventListener('DOMContentLoaded', function() {
         const itemHtml = `
             <div class="row align-items-center bill-item mb-2">
                 <div class="col-md-4">
+                    <label class="form-label d-md-none">Medicine</label>
                     <div class="medicine-search-container">
-                        <input type="text" class="form-control medicine-search" name="items[${itemIndex}][name]" placeholder="Search medicine..." required>
-                        <input type="hidden" class="medicine-id" name="items[${itemIndex}][medicine_id]">
+                        <input type="text" class="form-control medicine-search" name="medicine_name[${itemIndex}]" placeholder="Search medicine..." required>
+                        <input type="hidden" class="medicine-id" name="medicine_id[${itemIndex}]">
                         <div class="medicine-suggestions"></div>
                     </div>
                 </div>
                 <div class="col-md-2">
-                    <input type="number" class="form-control quantity-input" name="items[${itemIndex}][quantity]" value="1" min="1" required>
+                    <label class="form-label d-md-none">Qty</label>
+                    <input type="number" class="form-control quantity-input" name="quantity[${itemIndex}]" value="1" min="1" required>
                 </div>
                 <div class="col-md-2">
-                    <input type="number" class="form-control price-input" name="items[${itemIndex}][price]" readonly required>
+                    <label class="form-label d-md-none">Price</label>
+                    <input type="number" class="form-control price-input" name="price[${itemIndex}]" readonly required>
                 </div>
                 <div class="col-md-2">
-                    <input type="number" class="form-control total-input" name="items[${itemIndex}][total]" readonly>
+                    <label class="form-label d-md-none">Total</label>
+                    <input type="number" class="form-control total-input" name="total[${itemIndex}]" readonly>
                 </div>
                 <div class="col-md-2">
+                    <label class="form-label d-md-none">&nbsp;</label>
                     <button type="button" class="btn btn-sm btn-outline-danger remove-item-btn w-100">Remove</button>
                 </div>
             </div>`;
@@ -273,8 +311,12 @@ document.addEventListener('DOMContentLoaded', function() {
         });
 
         const discountPercent = parseFloat(document.getElementById('discount').value) || 0;
+        const taxPercent = parseFloat(document.getElementById('tax').value) || 0;
+
         const discountAmount = (subtotal * discountPercent) / 100;
-        const grandTotal = subtotal - discountAmount;
+        const taxableAmount = subtotal - discountAmount;
+        const taxAmount = (taxableAmount * taxPercent) / 100;
+        const grandTotal = taxableAmount + taxAmount;
 
         document.getElementById('subtotalAmount').textContent = `₹${subtotal.toFixed(2)}`;
         document.getElementById('grandTotalAmount').textContent = `₹${grandTotal.toFixed(2)}`;
@@ -299,6 +341,7 @@ document.addEventListener('DOMContentLoaded', function() {
     });
     
     document.getElementById('discount').addEventListener('input', calculateGrandTotal);
+    document.getElementById('tax').addEventListener('input', calculateGrandTotal);
 
     const searchMedicines = async (query, suggestionsDiv) => {
         try {
@@ -338,24 +381,46 @@ document.addEventListener('DOMContentLoaded', function() {
     });
 
     addItemBtn.addEventListener('click', addItem);
-    addItem(); // Initialize with one item
+    
+    // Initialize with one item
+    addItem();
 
+    // Save Bill
     document.getElementById('saveBillBtn').addEventListener('click', async () => {
         const form = document.getElementById('newBillForm');
+        
+        let isValid = true;
+        document.querySelectorAll('.bill-item').forEach(item => {
+            const medicineId = item.querySelector('.medicine-id').value;
+            if (!medicineId) {
+                isValid = false;
+                item.querySelector('.medicine-search').classList.add('is-invalid');
+            } else {
+                item.querySelector('.medicine-search').classList.remove('is-invalid');
+            }
+        });
+
+        if (!isValid) {
+            alert('Please select a valid medicine for all items.');
+            return;
+        }
+
         const formData = new FormData(form);
         
         try {
             const response = await fetch('{{ route("pharmacist.billing.store") }}', {
                 method: 'POST',
                 body: new URLSearchParams(formData),
-                headers: { 'X-CSRF-TOKEN': '{{ csrf_token() }}' }
+                headers: {
+                    'X-CSRF-TOKEN': '{{ csrf_token() }}'
+                }
             });
             const data = await response.json();
             if (data.success) {
                 alert('Bill saved successfully!');
                 window.location.reload();
             } else {
-                alert('Error: ' + data.message);
+                alert('Error: ' + (data.message || 'Validation failed. Please check your inputs.'));
             }
         } catch (error) {
             console.error('Save error:', error);

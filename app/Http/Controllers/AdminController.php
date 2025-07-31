@@ -45,7 +45,24 @@ class AdminController extends Controller
         $pharmacists = Pharmacist::latest()->paginate(15);
         return view('admin.pharmacists.index', compact('pharmacists'));
     }
+    public function resendPasswordSetupMail($id)
+{
+    $pharmacist = Pharmacist::findOrFail($id);
 
+    // Only resend if the password has not been set
+    if (is_null($pharmacist->password)) {
+        $setupToken = Str::random(60);
+        $pharmacist->setup_token = $setupToken;
+        $pharmacist->save();
+
+        // Send password setup email
+        Mail::to($pharmacist->email)->send(new PasswordSetupMail($pharmacist, $setupToken, 'pharmacist'));
+
+        return redirect()->back()->with('success', 'Password setup email has been resent successfully.');
+    }
+
+    return redirect()->back()->with('error', 'This pharmacist has already set up their password.');
+}
     public function createPharmacist()
     {
         return view('admin.pharmacists.create');

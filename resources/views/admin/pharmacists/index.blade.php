@@ -73,6 +73,17 @@
                                        class="btn btn-sm btn-outline-primary" title="Edit">
                                         <i class="fas fa-edit"></i>
                                     </a>
+                                    
+                                    {{-- Resend Mail Button --}}
+                                    @if($pharmacist->needsPasswordSetup())
+                                        <form action="{{ route('admin.pharmacists.resend-setup-mail', $pharmacist->id) }}" method="POST" class="d-inline">
+                                            @csrf
+                                            <button type="submit" class="btn btn-sm btn-outline-warning" title="Resend Setup Email">
+                                                <i class="fas fa-envelope"></i>
+                                            </button>
+                                        </form>
+                                    @endif
+
                                     <button type="button" 
                                             class="btn btn-sm btn-outline-danger confirm-delete" 
                                             data-url="{{ route('admin.pharmacists.delete', $pharmacist->id) }}"

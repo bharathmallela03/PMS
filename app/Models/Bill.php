@@ -46,7 +46,7 @@ class Bill extends Model
      */
     public function pharmacist()
     {
-        return $this->belongsTo(User::class, 'pharmacist_id');
+         return $this->belongsTo(Pharmacist::class, 'pharmacist_id');
     }
 
     /**
