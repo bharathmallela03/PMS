@@ -118,16 +118,38 @@ class PharmacistController extends Controller
     return response()->json([]);
 }
 
-    public function billingIndex()
+//     public function billingIndex()
+// {
+//     $pharmacist = Auth::guard('pharmacist')->user();
+    
+//     // Fetch bills for the current pharmacist
+//     $bills = Bill::where('pharmacist_id', $pharmacist->id)
+//                  ->latest()
+//                  ->paginate(15); 
+    
+//     return view('pharmacist.billing.index', compact('bills'));
+// }
+
+public function billingIndex()
 {
     $pharmacist = Auth::guard('pharmacist')->user();
     
-    // Fetch bills for the current pharmacist
+    // 1. Fetch the list of bills to display in the table
     $bills = Bill::where('pharmacist_id', $pharmacist->id)
                  ->latest()
                  ->paginate(15); 
     
-    return view('pharmacist.billing.index', compact('bills'));
+    // 2. Fetch active medicines for the "New Bill" modal
+    // Note: This data is now available if your modal needs it on page load.
+    // However, your JS fetches this dynamically, so this line is optional
+    // but good practice to have.
+    $medicines = Medicine::where('pharmacist_id', $pharmacist->id)
+                       ->where('quantity', '>', 0)
+                       ->where('is_active', true)
+                       ->get();
+    
+    // 3. Return the view with BOTH variables
+    return view('pharmacist.billing.index', compact('bills', 'medicines'));
 }
 
 public function storeBilling(Request $request) 
@@ -600,16 +622,16 @@ public function storeMedicine(Request $request)
     }
 
     // Billing
-    public function billing()
-    {
-        $pharmacist = Auth::guard('pharmacist')->user();
-        $medicines = Medicine::where('pharmacist_id', $pharmacist->id)
-                           ->where('quantity', '>', 0)
-                           ->where('is_active', true)
-                           ->get();
+    // public function billing()
+    // {
+    //     $pharmacist = Auth::guard('pharmacist')->user();
+    //     $medicines = Medicine::where('pharmacist_id', $pharmacist->id)
+    //                        ->where('quantity', '>', 0)
+    //                        ->where('is_active', true)
+    //                        ->get();
         
-        return view('pharmacist.billing.index', compact('medicines'));
-    }
+    //     return view('pharmacist.billing.index', compact('medicines'));
+    // }
 
     public function generateInvoice(Request $request)
     {
@@ -979,5 +1001,137 @@ public function storeMedicine(Request $request)
         foreach ($suppliers as $supplier) {
             Mail::to($supplier->email)->send(new StockAlertMail($medicine, $medicine->pharmacist, $supplier));
         }
+    }
+
+    // /**
+    //  * Display the stock alerts page with dynamic data.
+    //  */
+    // public function stockAlerts(Request $request)
+    // {
+    //     $pharmacist = Auth::guard('pharmacist')->user();
+    //     $query = Medicine::where('pharmacist_id', $pharmacist->id);
+
+    //     // Fetch all medicines with a calculated alert level
+    //     $medicines = (clone $query)->get()->map(function ($medicine) {
+    //         if ($medicine->quantity == 0) {
+    //             $medicine->alert_level = 'out';
+    //         } elseif ($medicine->quantity <= ($medicine->minimum_stock * 0.5) && $medicine->minimum_stock > 0) {
+    //             $medicine->alert_level = 'critical';
+    //         } elseif ($medicine->isLowStock()) { // Assumes isLowStock() is defined in Medicine model
+    //             $medicine->alert_level = 'low';
+    //         } else {
+    //             $medicine->alert_level = 'ok';
+    //         }
+    //         return $medicine;
+    //     })->filter(function ($medicine) {
+    //         return in_array($medicine->alert_level, ['critical', 'low', 'out']);
+    //     });
+
+    //     // Data for Summary Cards
+    //     $criticalAlertsCount = $medicines->where('alert_level', 'critical')->count();
+    //     $lowStockCount = $medicines->where('alert_level', 'low')->count();
+    //     $outOfStockCount = $medicines->where('alert_level', 'out')->count();
+    //     $wellStockedCount = (clone $query)->whereColumn('quantity', '>', 'minimum_stock')->count();
+
+    //     // Data for Filters and Modals
+    //     $categories = (clone $query)->distinct()->pluck('category')->filter();
+    //     $suppliers = Supplier::where('is_active', true)->get();
+
+    //     return view('pharmacist.stock-alerts', [
+    //         'medicines' => $medicines,
+    //         'criticalAlertsCount' => $criticalAlertsCount,
+    //         'lowStockCount' => $lowStockCount,
+    //         'outOfStockCount' => $outOfStockCount,
+    //         'wellStockedCount' => $wellStockedCount,
+    //         'categories' => $categories,
+    //         'suppliers' => $suppliers
+    //     ]);
+    // }
+
+    // /**
+    //  * Handle a single or bulk restock request.
+    //  */
+    // public function requestRestock(Request $request)
+    // {
+    //     $request->validate([
+    //         'items' => 'required|array',
+    //         'items.*.medicine_id' => 'required|exists:medicines,id',
+    //         'items.*.quantity' => 'required|integer|min:1',
+    //         'supplier_id' => 'required|exists:suppliers,id',
+    //     ]);
+
+    //     $pharmacist = Auth::guard('pharmacist')->user();
+    //     $supplier = Supplier::findOrFail($request->supplier_id);
+
+    //     foreach ($request->items as $item) {
+    //         StockRequest::create([
+    //             'pharmacist_id' => $pharmacist->id,
+    //             'supplier_id' => $supplier->id,
+    //             'medicine_id' => $item['medicine_id'],
+    //             'requested_quantity' => $item['quantity'],
+    //             'status' => 'pending',
+    //         ]);
+            
+    //         // Optional: Send mail for each request
+    //         // $medicine = Medicine::find($item['medicine_id']);
+    //         // Mail::to($supplier->email)->send(new StockAlertMail($medicine, $pharmacist, $supplier, $item['quantity']));
+    //     }
+
+    //     return response()->json([
+    //         'success' => true, 
+    //         'message' => count($request->items) . ' restock request(s) sent successfully.'
+    //     ]);
+    // }
+    
+    /**
+     * Export stock alerts report.
+     */
+    public function exportStockAlerts(Request $request)
+    {
+        $pharmacist = Auth::guard('pharmacist')->user();
+        $medicineIds = explode(',', $request->query('ids', ''));
+
+        return Excel::download(new StockAlertsExport($pharmacist->id, $medicineIds), 'stock_alerts_report.xlsx');
+    }
+
+    public function showBill(Bill $bill)
+    {
+        // Ensure the pharmacist can only view their own bills
+        if ($bill->pharmacist_id !== auth('pharmacist')->id()) {
+            abort(403);
+        }
+
+        // You need to create this view file: resources/views/pharmacist/billing/show.blade.php
+        return view('pharmacist.billing.show', compact('bill'));
+    }
+
+    public function printBill(Bill $bill)
+    {
+        if ($bill->pharmacist_id !== auth('pharmacist')->id()) {
+            abort(403);
+        }
+
+        // Load a dedicated view for the PDF
+        // You need to create this view file: resources/views/pharmacist/billing/pdf.blade.php
+        $pdf = Pdf::loadView('pharmacist.billing.pdf', compact('bill'));
+
+        // Stream the PDF to the browser
+        return $pdf->stream('bill-'.$bill->bill_number.'.pdf');
+    }
+
+    public function deleteBill(Bill $bill)
+    {
+        if ($bill->pharmacist_id !== auth('pharmacist')->id()) {
+            abort(403);
+        }
+        
+        // Note: You might want to restore medicine stock here before deleting
+        // foreach ($bill->billItems as $item) {
+        //     $item->medicine->increment('quantity', $item->quantity);
+        // }
+
+        $bill->delete(); // This performs a soft delete if your model uses it
+
+        return redirect()->route('pharmacist.billing')->with('success', 'Bill deleted successfully.');
     }
 }
