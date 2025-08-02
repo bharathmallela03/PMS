@@ -133,7 +133,25 @@
                                 <span class="badge {{ $bill->status_badge }}">{{ ucfirst($bill->status) }}</span>
                             </td>
                             <td>
-                                <a href="#" class="btn btn-sm btn-outline-primary">View</a>
+                                {{-- === SIDE-BY-SIDE ACTION BUTTONS START === --}}
+                                <div class="d-flex align-items-center gap-2">
+                                    <a href="{{ route('pharmacist.billing.show', $bill->id) }}" class="btn btn-sm btn-outline-primary" title="View">
+                                        <i class="fas fa-eye"></i>
+                                    </a>
+
+                                    <a href="{{ route('pharmacist.billing.print', $bill->id) }}" class="btn btn-sm btn-outline-secondary" title="Print/PDF" target="_blank">
+                                        <i class="fas fa-print"></i>
+                                    </a>
+
+                                    <form action="{{ route('pharmacist.billing.delete', $bill->id) }}" method="POST" class="d-inline" onsubmit="return confirm('Are you sure you want to delete this bill? This action cannot be undone.');">
+                                        @csrf
+                                        @method('DELETE')
+                                        <button type="submit" class="btn btn-sm btn-outline-danger" title="Delete">
+                                            <i class="fas fa-trash-alt"></i>
+                                        </button>
+                                    </form>
+                                </div>
+                                {{-- === SIDE-BY-SIDE ACTION BUTTONS END === --}}
                             </td>
                         </tr>
                         @empty

@@ -11,6 +11,7 @@ class BillItem extends Model
 
     protected $fillable = [
         'bill_id',
+        'pharmacist_id',
         'medicine_id',
         'quantity',
         'price',

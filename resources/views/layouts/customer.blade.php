@@ -13,7 +13,7 @@
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
     
     <style>
-        /* Custom styles for the layout */
+        /* Base layout styles */
         body {
             display: flex;
             min-height: 100vh;
@@ -26,7 +26,7 @@
         .sidebar {
             width: 260px;
             min-height: 100vh;
-            background-color: #0047FF; /* Changed to vibrant blue */
+            background-color: #0047FF; /* Vibrant blue */
             color: white;
         }
         .sidebar .nav-link {
@@ -51,7 +51,7 @@
             padding: 1.5rem;
             font-size: 1.5rem;
             font-weight: bold;
-            border-bottom: 1px solid #003bde; /* Border to match hover state */
+            border-bottom: 1px solid #003bde;
         }
         .content-wrapper {
             flex: 1;
@@ -62,6 +62,51 @@
             flex: 1;
             padding: 2rem;
             background-color: #f8f9fa;
+        }
+
+        /* === STYLES FOR USER DROPDOWN === */
+        .user-avatar {
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            background-color: #e85a4f; /* A reddish color similar to the image */
+            color: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            font-size: 1.1rem;
+        }
+        .dropdown-menu-custom {
+            border-radius: 0.75rem;
+            border: 1px solid #e5e7eb;
+            box-shadow: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
+            padding: 0;
+            overflow: hidden;
+        }
+        .dropdown-header-custom {
+            padding: 1rem 1.25rem;
+            background: linear-gradient(135deg, #89f7fe, #66a6ff); /* A blueish gradient */
+            color: #fff;
+        }
+        .dropdown-header-custom h5 {
+            margin-bottom: 0.25rem;
+            font-weight: 600;
+        }
+        .dropdown-header-custom p {
+            font-size: 0.875rem;
+            color: #f1f1f1;
+            margin-bottom: 0;
+        }
+        .dropdown-menu-custom .dropdown-item {
+            padding: 0.75rem 1.25rem;
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            font-size: 0.95rem;
+        }
+        .dropdown-menu-custom .dropdown-item .fa-fw {
+            color: #6b7280;
         }
     </style>
 
@@ -118,26 +163,40 @@
                             </a>
                         </li>
                         
+                        {{-- === UPDATED USER DROPDOWN START === --}}
                         <li class="nav-item dropdown">
-                            <a class="nav-link dropdown-toggle" href="#" id="userDropdown" role="button" data-bs-toggle="dropdown">
-                                <i class="fas fa-user-circle fs-5 me-1"></i>
-                                {{ auth('customer')->user()->name }}
+                            <a class="nav-link dropdown-toggle d-flex align-items-center" href="#" id="userDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                                <span class="me-2 d-none d-lg-inline">{{ auth('customer')->user()->name }}</span>
+                                <div class="user-avatar">
+                                    {{ strtoupper(substr(auth('customer')->user()->name, 0, 1)) }}
+                                </div>
                             </a>
-                            <ul class="dropdown-menu dropdown-menu-end">
-                                <li><a class="dropdown-item" href="{{ route('customer.profile') }}">
-                                    <i class="fas fa-user fa-sm fa-fw me-2 text-muted"></i> Profile
-                                </a></li>
-                                <li><a class="dropdown-item" href="{{ route('customer.addresses') }}">
-                                    <i class="fas fa-map-marker-alt fa-sm fa-fw me-2 text-muted"></i> Addresses
-                                </a></li>
-                                <li><hr class="dropdown-divider"></li>
+                            <ul class="dropdown-menu dropdown-menu-end dropdown-menu-custom" aria-labelledby="userDropdown">
+                                <li>
+                                    <div class="dropdown-header-custom">
+                                        <h5>{{ auth('customer')->user()->name }}</h5>
+                                        <p>{{ auth('customer')->user()->email }}</p>
+                                    </div>
+                                </li>
+                                <li>
+                                    <a class="dropdown-item" href="{{ route('customer.profile') }}">
+                                        <i class="fas fa-user-circle fa-fw"></i> Profile
+                                    </a>
+                                </li>
+                                <li>
+                                    <a class="dropdown-item" href="{{ route('customer.addresses') }}">
+                                        <i class="fas fa-map-marker-alt fa-fw"></i> Addresses
+                                    </a>
+                                </li>
+                                <li><hr class="dropdown-divider my-0"></li>
                                 <li>
                                     <a class="dropdown-item" href="#" onclick="event.preventDefault(); document.getElementById('logout-form-2').submit();">
-                                        <i class="fas fa-sign-out-alt fa-sm fa-fw me-2 text-muted"></i> Logout
+                                        <i class="fas fa-sign-out-alt fa-fw"></i> Sign Out
                                     </a>
                                 </li>
                             </ul>
                         </li>
+                        {{-- === UPDATED USER DROPDOWN END === --}}
                     </ul>
                 </div>
             </nav>

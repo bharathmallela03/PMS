@@ -85,13 +85,16 @@ Route::prefix('pharmacist')->middleware(['auth:pharmacist'])->group(function () 
     Route::post('/companies', [PharmacistController::class, 'storeCompany'])->name('pharmacist.companies.store');
     
     // Billing
-   Route::get('/billing', [PharmacistController::class, 'billing'])->name('pharmacist.billing');
+    Route::get('/billing', [PharmacistController::class, 'billingIndex'])->name('pharmacist.billing');
     Route::post('/billing/store', [PharmacistController::class, 'storeBilling'])->name('pharmacist.billing.store');
     Route::get('/billing/{id}', [PharmacistController::class, 'showBill'])->name('pharmacist.billing.show');
     Route::get('/billing/{id}/print', [PharmacistController::class, 'printBill'])->name('pharmacist.billing.print');
     Route::put('/billing/{id}/status', [PharmacistController::class, 'updateBillStatus'])->name('pharmacist.billing.status');
     Route::get('/billing/search', [PharmacistController::class, 'searchBills'])->name('pharmacist.billing.search');
     Route::get('/search-medicines', [PharmacistController::class, 'searchMedicines'])->name('search.medicines');
+    Route::get('/billing/{bill}', [PharmacistController::class, 'showBill'])->name('pharmacist.billing.show');
+    Route::get('/billing/{bill}/print', [PharmacistController::class, 'printBill'])->name('pharmacist.billing.print');
+    Route::delete('/billing/{bill}', [PharmacistController::class, 'deleteBill'])->name('pharmacist.billing.delete');
     
     // Orders
     Route::get('/orders', [PharmacistController::class, 'orders'])->name('pharmacist.orders');
@@ -109,6 +112,7 @@ Route::prefix('pharmacist')->middleware(['auth:pharmacist'])->group(function () 
     // Stock Alerts
     Route::get('/stock-alerts', [PharmacistController::class, 'stockAlerts'])->name('pharmacist.stock-alerts');
     Route::post('/stock-alerts/request-restock', [PharmacistController::class, 'requestRestock'])->name('pharmacist.stock-alerts.request-restock');
+    
 });
 
 // Supplier Routes
