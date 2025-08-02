@@ -36,10 +36,7 @@
                     Medicines
                 </a>
                 
-                <a class="nav-link {{ request()->routeIs('supplier.companies*') ? 'active' : '' }}" href="{{ route('supplier.companies') }}">
-                    <i class="fas fa-building me-2"></i>
-                    Companies
-                </a>
+                {{-- This link was removed as the route does not exist for suppliers --}}
                 
                 <a class="nav-link {{ request()->routeIs('supplier.stock-requests*') ? 'active' : '' }}" href="{{ route('supplier.stock-requests') }}">
                     <i class="fas fa-clipboard-list me-2"></i>
