@@ -42,6 +42,8 @@ COPY --from=node_assets /app/public /var/www/html/public
 
 # Copy Nginx config files
 COPY nginx.conf /etc/nginx/sites-available/default
+# --- FIX: Remove the existing default symlink before creating a new one ---
+RUN rm -f /etc/nginx/sites-enabled/default
 RUN ln -s /etc/nginx/sites-available/default /etc/nginx/sites-enabled/default
 RUN rm /etc/nginx/nginx.conf
 COPY nginx-main.conf /etc/nginx/nginx.conf
