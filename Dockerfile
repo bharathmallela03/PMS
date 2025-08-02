@@ -13,6 +13,7 @@ FROM php:8.2-fpm
 WORKDIR /var/www/html
 
 # Install system dependencies for Laravel & Nginx
+# --- FIX: Add libpq-dev for the PostgreSQL driver ---
 RUN apt-get update && apt-get install -y \
     git \
     curl \
@@ -23,13 +24,15 @@ RUN apt-get update && apt-get install -y \
     unzip \
     nginx \
     libzip-dev \
-    libgd-dev
+    libgd-dev \
+    libpq-dev
 
 # Clear cache
 RUN apt-get clean && rm -rf /var/lib/apt/lists/*
 
 # Install PHP extensions required by the project
-RUN docker-php-ext-install pdo_mysql mbstring exif pcntl bcmath gd zip
+# --- FIX: Add pdo_pgsql for PostgreSQL connection ---
+RUN docker-php-ext-install pdo_mysql pdo_pgsql mbstring exif pcntl bcmath gd zip
 
 # Install Composer
 COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
@@ -41,10 +44,8 @@ COPY . .
 COPY --from=node_assets /app/public /var/www/html/public
 
 # Copy Nginx config files
-COPY nginx.conf /etc/nginx/sites-available/default
-# --- FIX: Remove the existing default symlink before creating a new one ---
 RUN rm -f /etc/nginx/sites-enabled/default
-RUN ln -s /etc/nginx/sites-available/default /etc/nginx/sites-enabled/default
+COPY nginx.conf /etc/nginx/sites-enabled/default
 RUN rm /etc/nginx/nginx.conf
 COPY nginx-main.conf /etc/nginx/nginx.conf
 
