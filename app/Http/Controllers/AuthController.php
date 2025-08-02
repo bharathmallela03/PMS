@@ -13,48 +13,65 @@ use App\Models\Customer;
 
 class AuthController extends Controller
 {
+    /**
+     * Show the login form.
+     * The $userType variable is no longer needed here.
+     */
     public function showLogin(Request $request)
     {
-        $userType = $request->get('type', 'customer');
-        return view('auth.login', compact('userType'));
+        return view('auth.login');
     }
 
+    /**
+     * Handle a login request to the application.
+     * This method now checks all guards automatically.
+     */
     public function login(Request $request)
     {
+        // 1. Validate only email and password
         $request->validate([
             'email' => 'required|email',
             'password' => 'required',
-            'user_type' => 'required|in:admin,pharmacist,supplier,customer'
         ]);
 
         $credentials = $request->only('email', 'password');
-        $userType = $request->user_type;
+        
+        // 2. Define the order of guards to check
+        $guards = ['admin', 'pharmacist', 'supplier', 'customer'];
 
-        $guard = $userType;
-        $redirectRoute = $userType . '.dashboard';
+        // 3. Loop through guards and attempt to login
+        foreach ($guards as $guard) {
+            if (Auth::guard($guard)->attempt($credentials, $request->boolean('remember'))) {
+                $user = Auth::guard($guard)->user();
+                $redirectRoute = $guard . '.dashboard';
 
-        if (Auth::guard($guard)->attempt($credentials)) {
-            $user = Auth::guard($guard)->user();
-            
-            // Check if user is active
-            if (isset($user->is_active) && !$user->is_active) {
-                Auth::guard($guard)->logout();
-                return back()->withErrors(['email' => 'Your account has been deactivated.']);
+                // Check if user is active (if applicable)
+                if (isset($user->is_active) && !$user->is_active) {
+                    Auth::guard($guard)->logout();
+                    return back()->withErrors(['email' => 'Your account has been deactivated.']);
+                }
+
+                // Check for password setup (if applicable)
+                if (in_array($guard, ['pharmacist', 'supplier']) && $user->needsPasswordSetup()) {
+                    Auth::guard($guard)->logout();
+                    return redirect()->route('password.setup.form', $user->setup_token)
+                        ->with('info', 'Please set up your password to continue.');
+                }
+                
+                $request->session()->regenerate();
+                return redirect()->intended(route($redirectRoute));
             }
-
-            // Check if user needs to setup password (for pharmacists and suppliers)
-            if (in_array($userType, ['pharmacist', 'supplier']) && $user->needsPasswordSetup()) {
-                Auth::guard($guard)->logout();
-                return redirect()->route('password.setup.form', $user->setup_token)
-                    ->with('info', 'Please setup your password to continue.');
-            }
-
-            return redirect()->route($redirectRoute);
         }
 
-        return back()->withErrors(['email' => 'Invalid credentials.']);
+        // 4. If no guard authenticated, return error
+        return back()->withErrors([
+            'email' => 'The provided credentials do not match our records.',
+        ])->onlyInput('email');
     }
 
+    // ... The rest of your controller methods (logout, register, etc.) can remain the same.
+    // The existing logout() method is already designed to handle multiple guards correctly.
+    
     public function logout(Request $request)
     {
         $guards = ['admin', 'pharmacist', 'supplier', 'customer'];

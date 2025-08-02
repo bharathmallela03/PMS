@@ -173,7 +173,7 @@
                                         <p>{{ auth('pharmacist')->user()->email }}</p>
                                     </div>
                                 </li>
-                                <li><a class="dropdown-item" href="#"><i class="fas fa-user-shield fa-fw"></i> Role</a></li>
+                                <!-- <li><a class="dropdown-item" href="#"><i class="fas fa-user-shield fa-fw"></i> Role</a></li> -->
                                 <li><a class="dropdown-item" href="#"><i class="fas fa-lock fa-fw"></i> Change Password</a></li>
                                 <li><hr class="dropdown-divider my-0"></li>
                                 <li>
