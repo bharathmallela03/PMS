@@ -866,7 +866,11 @@ public function storeMedicine(Request $request)
         $lowStockMedicines = Medicine::where('pharmacist_id', $pharmacist->id)->lowStock()->get();
         $stockRequests = StockRequest::where('pharmacist_id', $pharmacist->id)->with(['medicine', 'supplier'])->latest()->get();
 
-        return view('pharmacist.stock-alerts', compact('lowStockMedicines', 'stockRequests'));
+        // This line is required to fetch suppliers for the modal dropdown
+        $suppliers = Supplier::where('is_active', true)->orderBy('name')->get();
+
+        // Note that 'suppliers' is now included in compact()
+        return view('pharmacist.stock-alerts', compact('lowStockMedicines', 'stockRequests', 'suppliers'));
     }
 
     public function requestRestock(Request $request)

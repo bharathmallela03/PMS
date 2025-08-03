@@ -5,7 +5,6 @@
 @section('content')
 <div class="container-fluid">
     <div class="row min-vh-100">
-        <!-- Left side - Branding -->
         <div class="col-lg-6 d-none d-lg-flex align-items-center justify-content-center bg-primary">
             <div class="text-center text-white">
                 <i class="fas fa-pills fa-5x mb-4"></i>
@@ -28,7 +27,6 @@
             </div>
         </div>
 
-        <!-- Right side - Login Form -->
         <div class="col-lg-6 d-flex align-items-center justify-content-center">
             <div class="w-100" style="max-width: 400px;">
                 <div class="card shadow-lg border-0">
@@ -52,23 +50,16 @@
                                 {{ session('info') }}
                             </div>
                         @endif
+                        
+                        @if (session('status'))
+                            <div class="alert alert-success" role="alert">
+                                {{ session('status') }}
+                            </div>
+                        @endif
 
                         <form method="POST" action="{{ route('login') }}">
                             @csrf
                             
-                            <!-- User Type Selection -->
-                            <div class="mb-3">
-                                <label for="user_type" class="form-label">Login As</label>
-                                <select class="form-select" id="user_type" name="user_type" required>
-                                    <option value="">Select User Type</option>
-                                    <option value="admin" {{ $userType === 'admin' ? 'selected' : '' }}>Administrator</option>
-                                    <option value="pharmacist" {{ $userType === 'pharmacist' ? 'selected' : '' }}>Pharmacist</option>
-                                    <option value="supplier" {{ $userType === 'supplier' ? 'selected' : '' }}>Supplier</option>
-                                    <option value="customer" {{ $userType === 'customer' ? 'selected' : '' }}>Customer</option>
-                                </select>
-                            </div>
-
-                            <!-- Email -->
                             <div class="mb-3">
                                 <label for="email" class="form-label">Email Address</label>
                                 <div class="input-group">
@@ -78,7 +69,6 @@
                                 </div>
                             </div>
 
-                            <!-- Password -->
                             <div class="mb-3">
                                 <label for="password" class="form-label">Password</label>
                                 <div class="input-group">
@@ -90,7 +80,6 @@
                                 </div>
                             </div>
 
-                            <!-- Remember Me -->
                             <div class="mb-3 form-check">
                                 <input type="checkbox" class="form-check-input" id="remember" name="remember">
                                 <label class="form-check-label" for="remember">
@@ -98,7 +87,6 @@
                                 </label>
                             </div>
 
-                            <!-- Submit Button -->
                             <div class="d-grid">
                                 <button type="submit" class="btn btn-primary btn-lg">
                                     <i class="fas fa-sign-in-alt me-2"></i>Sign In
@@ -106,7 +94,6 @@
                             </div>
                         </form>
 
-                        <!-- Additional Links -->
                         <div class="text-center mt-4">
                             <div class="row">
                                 <div class="col-6">
@@ -115,33 +102,14 @@
                                     </a>
                                 </div>
                                 <div class="col-6">
-                                    <a href="#" class="text-decoration-none">
+                                    <!-- MODIFIED: Updated the href to point to the password.request route -->
+                                    <a href="{{ route('password.request') }}" class="text-decoration-none">
                                         <small>Forgot Password?</small>
                                     </a>
                                 </div>
                             </div>
                         </div>
 
-                        <!-- Demo Credentials -->
-                        <div class="mt-4">
-                            <h6 class="text-center text-muted">Demo Credentials:</h6>
-                            <div class="row text-center">
-                                <div class="col-6">
-                                    <small class="text-muted">
-                                        <strong>Admin:</strong><br>
-                                        admin@pharmacy.com<br>
-                                        password
-                                    </small>
-                                </div>
-                                <div class="col-6">
-                                    <small class="text-muted">
-                                        <strong>Customer:</strong><br>
-                                        customer@test.com<br>
-                                        password
-                                    </small>
-                                </div>
-                            </div>
-                        </div>
                     </div>
                 </div>
             </div>

@@ -5,11 +5,9 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="csrf-token" content="{{ csrf_token() }}">
 
-    <title>@yield('title', 'Customer Dashboard') - PharmaCare</title>
-
-    <!-- Bootstrap CSS -->
+    <!-- <title><i class="fas fa-pills me-2"></i> @yield('title', 'Customer Dashboard') - PharmaCare</title> -->
+    <title>💊 @yield('title', 'Customer Dashboard') - PharmaCare</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
-    <!-- Font Awesome -->
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
     
     <style>
@@ -64,12 +62,12 @@
             background-color: #f8f9fa;
         }
 
-        /* === STYLES FOR USER DROPDOWN === */
+        /* User Dropdown Styles */
         .user-avatar {
             width: 36px;
             height: 36px;
             border-radius: 50%;
-            background-color: #e85a4f; /* A reddish color similar to the image */
+            background-color: #e85a4f;
             color: white;
             display: flex;
             align-items: center;
@@ -83,30 +81,50 @@
             box-shadow: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
             padding: 0;
             overflow: hidden;
+            min-width: 250px; /* Added for better spacing */
         }
+
+        /* --- UPDATED DROPDOWN HEADER --- */
+        /* Changed background to solid blue for brand consistency */
         .dropdown-header-custom {
             padding: 1rem 1.25rem;
-            background: linear-gradient(135deg, #89f7fe, #66a6ff); /* A blueish gradient */
+            background-color: #0047FF; /* Match the sidebar */
             color: #fff;
         }
-        .dropdown-header-custom h5 {
-            margin-bottom: 0.25rem;
+        .dropdown-header-custom h5 { margin-bottom: 0.25rem; font-weight: 600; }
+        /* Adjusted color for better readability on dark background */
+        .dropdown-header-custom p { font-size: 0.875rem; color: rgba(255, 255, 255, 0.85); margin-bottom: 0; }
+        
+        .dropdown-menu-custom .dropdown-item { padding: 0.75rem 1.25rem; display: flex; align-items: center; gap: 0.75rem; font-size: 0.95rem; }
+        .dropdown-menu-custom .dropdown-item .fa-fw { color: #6b7280; }
+
+        /* Mobile Offcanvas Sidebar */
+        .offcanvas-header {
+            background-color: #0047FF;
+            color: white;
+            border-bottom: 1px solid #003bde;
+        }
+        .offcanvas-body {
+            background-color: #0047FF;
+            padding: 0;
+        }
+        .offcanvas-body .nav-link {
+            color: white;
             font-weight: 600;
         }
-        .dropdown-header-custom p {
-            font-size: 0.875rem;
-            color: #f1f1f1;
-            margin-bottom: 0;
+        .offcanvas-body .nav-link:hover {
+            background-color: #003bde;
         }
-        .dropdown-menu-custom .dropdown-item {
-            padding: 0.75rem 1.25rem;
-            display: flex;
-            align-items: center;
-            gap: 0.75rem;
-            font-size: 0.95rem;
+        .offcanvas-body .nav-link.active {
+            background-color: #0032ba;
+            font-weight: 700;
         }
-        .dropdown-menu-custom .dropdown-item .fa-fw {
-            color: #6b7280;
+
+        /* --- ADDED MEDIA QUERIES FOR RESPONSIVENESS --- */
+        @media (max-width: 767.98px) {
+            .main-content {
+                padding: 1.5rem; /* Reduce padding on smaller screens for more space */
+            }
         }
     </style>
 
@@ -114,7 +132,6 @@
 </head>
 <body>
     <div class="main-wrapper">
-        <!-- Sidebar -->
         <aside class="sidebar d-none d-lg-block">
             <div class="sidebar-header">
                 <i class="fas fa-pills me-2"></i> PHARMACARE
@@ -141,21 +158,17 @@
             </nav>
         </aside>
 
-        <!-- Main Content Wrapper -->
         <div class="content-wrapper">
-            <!-- Top Navigation -->
             <nav class="navbar navbar-expand-lg navbar-light bg-white border-bottom">
                 <div class="container-fluid">
-                    <!-- Mobile Menu Toggle -->
-                    <button class="navbar-toggler" type="button" data-bs-toggle="offcanvas" data-bs-target="#mobileSidebar">
+                    <button class="navbar-toggler" type="button" data-bs-toggle="offcanvas" data-bs-target="#mobileSidebar" aria-controls="mobileSidebar">
                         <span class="navbar-toggler-icon"></span>
                     </button>
                     
                     <div class="collapse navbar-collapse">
-                        <!-- This can be used for breadcrumbs or page titles if needed -->
-                    </div>
+                        </div>
                     
-                    <ul class="navbar-nav ms-auto">
+                    <ul class="navbar-nav ms-auto align-items-center">
                         <li class="nav-item">
                             <a class="nav-link position-relative" href="{{ route('customer.cart') }}">
                                 <i class="fas fa-shopping-cart fs-5"></i>
@@ -163,7 +176,6 @@
                             </a>
                         </li>
                         
-                        {{-- === UPDATED USER DROPDOWN START === --}}
                         <li class="nav-item dropdown">
                             <a class="nav-link dropdown-toggle d-flex align-items-center" href="#" id="userDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
                                 <span class="me-2 d-none d-lg-inline">{{ auth('customer')->user()->name }}</span>
@@ -196,12 +208,10 @@
                                 </li>
                             </ul>
                         </li>
-                        {{-- === UPDATED USER DROPDOWN END === --}}
                     </ul>
                 </div>
             </nav>
 
-            <!-- Page Content -->
             <main class="main-content">
                  @if (session('success'))
                     <div class="alert alert-success alert-dismissible fade show" role="alert">
@@ -210,20 +220,43 @@
                         <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
                     </div>
                 @endif
-                <!-- Other session messages here -->
-
                 @yield('content')
             </main>
         </div>
     </div>
 
-    <form id="logout-form-2" action="{{ route('logout') }}" method="POST" class="d-none">
-        @csrf
-    </form>
+    <div class="offcanvas offcanvas-start" tabindex="-1" id="mobileSidebar" aria-labelledby="mobileSidebarLabel">
+        <div class="offcanvas-header">
+            <h5 class="offcanvas-title" id="mobileSidebarLabel">
+                <i class="fas fa-pills me-2"></i> PHARMACARE
+            </h5>
+            <button type="button" class="btn-close btn-close-white" data-bs-dismiss="offcanvas" aria-label="Close"></button>
+        </div>
+        <div class="offcanvas-body">
+            <nav class="nav flex-column mt-3">
+                <a href="{{ route('customer.dashboard') }}" class="nav-link {{ request()->routeIs('customer.dashboard') ? 'active' : '' }}">
+                    <i class="fas fa-tachometer-alt fa-fw me-2"></i> Dashboard
+                </a>
+                <a href="{{ route('customer.medicines') }}" class="nav-link {{ request()->routeIs('customer.medicines*') ? 'active' : '' }}">
+                    <i class="fas fa-capsules fa-fw me-2"></i> Medicines
+                </a>
+                <a href="{{ route('customer.orders') }}" class="nav-link {{ request()->routeIs('customer.orders*') ? 'active' : '' }}">
+                    <i class="fas fa-file-invoice fa-fw me-2"></i> My Orders
+                </a>
+                <a href="{{ route('customer.profile') }}" class="nav-link {{ request()->routeIs('customer.profile*') ? 'active' : '' }}">
+                    <i class="fas fa-user-circle fa-fw me-2"></i> Profile
+                </a>
+                <a href="#" onclick="event.preventDefault(); document.getElementById('logout-form-3').submit();" class="nav-link mt-auto">
+                    <i class="fas fa-sign-out-alt fa-fw me-2"></i> Logout
+                </a>
+            </nav>
+        </div>
+    </div>
 
-    <!-- Bootstrap JS -->
+    <form id="logout-form-2" action="{{ route('logout') }}" method="POST" class="d-none">@csrf</form>
+    <form id="logout-form-3" action="{{ route('logout') }}" method="POST" class="d-none">@csrf</form>
+
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
-    <!-- jQuery -->
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
 
     @stack('scripts')

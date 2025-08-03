@@ -6,55 +6,67 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Validator;
+use Illuminate\Support\Facades\Mail; // <-- Import Mail facade
 use App\Models\Admin;
 use App\Models\Pharmacist;
 use App\Models\Supplier;
 use App\Models\Customer;
+use App\Mail\WelcomeCustomer; // <-- Import your new Mailable
 
 class AuthController extends Controller
 {
+    /**
+     * Show the login form.
+     */
     public function showLogin(Request $request)
     {
-        $userType = $request->get('type', 'customer');
-        return view('auth.login', compact('userType'));
+        return view('auth.login');
     }
 
+    /**
+     * Handle a login request to the application.
+     */
     public function login(Request $request)
     {
+        // 1. Validate only email and password
         $request->validate([
             'email' => 'required|email',
             'password' => 'required',
-            'user_type' => 'required|in:admin,pharmacist,supplier,customer'
         ]);
 
         $credentials = $request->only('email', 'password');
-        $userType = $request->user_type;
+        
+        // 2. Define the order of guards to check
+        $guards = ['admin', 'pharmacist', 'supplier', 'customer'];
 
-        $guard = $userType;
-        $redirectRoute = $userType . '.dashboard';
+        // 3. Loop through guards and attempt to login
+        foreach ($guards as $guard) {
+            if (Auth::guard($guard)->attempt($credentials, $request->boolean('remember'))) {
+                $user = Auth::guard($guard)->user();
+                $redirectRoute = $guard . '.dashboard';
 
-        if (Auth::guard($guard)->attempt($credentials)) {
-            $user = Auth::guard($guard)->user();
-            
-            // Check if user is active
-            if (isset($user->is_active) && !$user->is_active) {
-                Auth::guard($guard)->logout();
-                return back()->withErrors(['email' => 'Your account has been deactivated.']);
+                if (isset($user->is_active) && !$user->is_active) {
+                    Auth::guard($guard)->logout();
+                    return back()->withErrors(['email' => 'Your account has been deactivated.']);
+                }
+
+                if (in_array($guard, ['pharmacist', 'supplier']) && $user->needsPasswordSetup()) {
+                    Auth::guard($guard)->logout();
+                    return redirect()->route('password.setup.form', $user->setup_token)
+                        ->with('info', 'Please set up your password to continue.');
+                }
+                
+                $request->session()->regenerate();
+                return redirect()->intended(route($redirectRoute));
             }
-
-            // Check if user needs to setup password (for pharmacists and suppliers)
-            if (in_array($userType, ['pharmacist', 'supplier']) && $user->needsPasswordSetup()) {
-                Auth::guard($guard)->logout();
-                return redirect()->route('password.setup.form', $user->setup_token)
-                    ->with('info', 'Please setup your password to continue.');
-            }
-
-            return redirect()->route($redirectRoute);
         }
 
-        return back()->withErrors(['email' => 'Invalid credentials.']);
+        // 4. If no guard authenticated, return error
+        return back()->withErrors([
+            'email' => 'The provided credentials do not match our records.',
+        ])->onlyInput('email');
     }
-
+    
     public function logout(Request $request)
     {
         $guards = ['admin', 'pharmacist', 'supplier', 'customer'];
@@ -108,9 +120,19 @@ class AuthController extends Controller
             'is_active' => true,
         ]);
 
+        // Login the new customer
         Auth::guard('customer')->login($customer);
 
-        return redirect()->route('customer.dashboard')->with('success', 'Registration successful!');
+        // ** NEW: Send the welcome email **
+        try {
+            Mail::to($customer->email)->send(new WelcomeCustomer($customer));
+        } catch (\Exception $e) {
+            // Optional: Log the error or handle it gracefully if mail fails
+            // \Log::error("Mail sending failed: " . $e->getMessage());
+            \Log::error("Mail sending failed: " . $e->getMessage());
+        }
+
+        return redirect()->route('customer.dashboard')->with('success', 'Registration successful! Welcome aboard.');
     }
 
     public function showPasswordSetup($token)
@@ -152,33 +174,21 @@ class AuthController extends Controller
         return redirect()->route($redirectRoute)->with('success', 'Password setup successful!');
     }
 
-    /**
-     * Show admin dashboard
-     */
     public function adminDashboard()
     {
         return view('admin.dashboard');
     }
 
-    /**
-     * Show pharmacist dashboard
-     */
     public function pharmacistDashboard()
     {
         return view('pharmacist.dashboard');
     }
 
-    /**
-     * Show supplier dashboard
-     */
     public function supplierDashboard()
     {
         return view('supplier.dashboard');
     }
 
-    /**
-     * Show customer dashboard
-     */
     public function customerDashboard()
     {
         return view('customer.dashboard');

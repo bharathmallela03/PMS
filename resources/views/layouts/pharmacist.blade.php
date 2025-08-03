@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="csrf-token" content="{{ csrf_token() }}">
 
-    <title>@yield('title', 'Pharmacist Dashboard') - PharmaCare</title>
+    <title>💊@yield('title', 'Pharmacist Dashboard') - PharmaCare</title>
 
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
@@ -173,7 +173,7 @@
                                         <p>{{ auth('pharmacist')->user()->email }}</p>
                                     </div>
                                 </li>
-                                <li><a class="dropdown-item" href="#"><i class="fas fa-user-shield fa-fw"></i> Role</a></li>
+                                <!-- <li><a class="dropdown-item" href="#"><i class="fas fa-user-shield fa-fw"></i> Role</a></li> -->
                                 <li><a class="dropdown-item" href="#"><i class="fas fa-lock fa-fw"></i> Change Password</a></li>
                                 <li><hr class="dropdown-divider my-0"></li>
                                 <li>

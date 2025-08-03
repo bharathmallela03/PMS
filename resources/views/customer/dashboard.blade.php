@@ -5,12 +5,13 @@
 @section('content')
 <div class="row">
     <div class="col-12">
-        <div class="d-flex justify-content-between align-items-center mb-4">
+        <!-- Responsive Header -->
+        <div class="d-block d-md-flex justify-content-between align-items-center mb-4 text-center text-md-start">
             <div>
-                <h1 class="h3 mb-0">Welcome back, {{ auth('customer')->user()->name }}!</h1>
-                <p class="text-muted">Here's what's happening with your orders today.</p>
+                <h1 class="h3 mb-1">Welcome back, {{ auth('customer')->user()->name }}!</h1>
+                <p class="text-muted mb-3 mb-md-0">Here's what's happening with your orders today.</p>
             </div>
-            <div>
+            <div class="d-grid d-md-block">
                 <a href="{{ route('customer.medicines') }}" class="btn btn-primary">
                     <i class="fas fa-pills me-2"></i>Browse Medicines
                 </a>
@@ -206,13 +207,13 @@
             </div>
             <div class="card-body">
                 <div class="row">
-                    <div class="col-md-3 mb-3">
+                    <div class="col-md-3 col-6 mb-3">
                         <a href="{{ route('customer.medicines') }}" class="btn btn-outline-primary btn-block h-100 d-flex flex-column justify-content-center align-items-center py-3">
                             <i class="fas fa-pills fa-2x mb-2"></i>
-                            <span>Browse Medicines</span>
+                            <span>Browse</span>
                         </a>
                     </div>
-                    <div class="col-md-3 mb-3">
+                    <div class="col-md-3 col-6 mb-3">
                         <a href="{{ route('customer.cart') }}" class="btn btn-outline-success btn-block h-100 d-flex flex-column justify-content-center align-items-center py-3">
                             <i class="fas fa-shopping-cart fa-2x mb-2"></i>
                             <span>View Cart</span>
@@ -221,13 +222,13 @@
                             @endif
                         </a>
                     </div>
-                    <div class="col-md-3 mb-3">
+                    <div class="col-md-3 col-6 mb-3">
                         <a href="{{ route('customer.orders') }}" class="btn btn-outline-info btn-block h-100 d-flex flex-column justify-content-center align-items-center py-3">
                             <i class="fas fa-list-alt fa-2x mb-2"></i>
                             <span>My Orders</span>
                         </a>
                     </div>
-                    <div class="col-md-3 mb-3">
+                    <div class="col-md-3 col-6 mb-3">
                         <a href="{{ route('customer.profile') }}" class="btn btn-outline-warning btn-block h-100 d-flex flex-column justify-content-center align-items-center py-3">
                             <i class="fas fa-user-cog fa-2x mb-2"></i>
                             <span>My Profile</span>
@@ -243,12 +244,14 @@
 <script>
 function addToCart(medicineId) {
     // Add to cart functionality
-    addToCart(medicineId, 1);
+    // This is a placeholder for your actual AJAX call
+    console.log(`Adding medicine ${medicineId} to cart.`);
 }
 
 // Update cart count on page load
 $(document).ready(function() {
-    updateCartCount({{ $cart_items }});
+    // This is a placeholder for your actual cart count update logic
+    // updateCartCount({{ $cart_items }});
 });
 </script>
 @endpush

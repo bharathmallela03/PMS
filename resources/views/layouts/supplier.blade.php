@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="csrf-token" content="{{ csrf_token() }}">
 
-    <title>@yield('title', 'Supplier Dashboard') - Pharmacy Management System</title>
+    <title>💊@yield('title', 'Supplier Dashboard') - Pharmacy Management System</title>
 
     <!-- Bootstrap CSS -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
@@ -36,10 +36,7 @@
                     Medicines
                 </a>
                 
-                <a class="nav-link {{ request()->routeIs('supplier.companies*') ? 'active' : '' }}" href="{{ route('supplier.companies') }}">
-                    <i class="fas fa-building me-2"></i>
-                    Companies
-                </a>
+                {{-- This link was removed as the route does not exist for suppliers --}}
                 
                 <a class="nav-link {{ request()->routeIs('supplier.stock-requests*') ? 'active' : '' }}" href="{{ route('supplier.stock-requests') }}">
                     <i class="fas fa-clipboard-list me-2"></i>
