@@ -50,6 +50,12 @@
                                 {{ session('info') }}
                             </div>
                         @endif
+                        
+                        @if (session('status'))
+                            <div class="alert alert-success" role="alert">
+                                {{ session('status') }}
+                            </div>
+                        @endif
 
                         <form method="POST" action="{{ route('login') }}">
                             @csrf
@@ -96,14 +102,16 @@
                                     </a>
                                 </div>
                                 <div class="col-6">
-                                    <a href="#" class="text-decoration-none">
+                                    <!-- MODIFIED: Updated the href to point to the password.request route -->
+                                    <a href="{{ route('password.request') }}" class="text-decoration-none">
                                         <small>Forgot Password?</small>
                                     </a>
                                 </div>
                             </div>
                         </div>
 
-                        </div>
+                    </div>
+                </div>
             </div>
         </div>
     </div>

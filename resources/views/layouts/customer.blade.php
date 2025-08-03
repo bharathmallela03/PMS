@@ -5,11 +5,9 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="csrf-token" content="{{ csrf_token() }}">
 
-    <title>@yield('title', 'Customer Dashboard') - PharmaCare</title>
-
-    <!-- Bootstrap CSS -->
+    <!-- <title><i class="fas fa-pills me-2"></i> @yield('title', 'Customer Dashboard') - PharmaCare</title> -->
+    <title>💊 @yield('title', 'Customer Dashboard') - PharmaCare</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
-    <!-- Font Awesome -->
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
     
     <style>
@@ -83,14 +81,20 @@
             box-shadow: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
             padding: 0;
             overflow: hidden;
+            min-width: 250px; /* Added for better spacing */
         }
+
+        /* --- UPDATED DROPDOWN HEADER --- */
+        /* Changed background to solid blue for brand consistency */
         .dropdown-header-custom {
             padding: 1rem 1.25rem;
-            background: linear-gradient(135deg, #89f7fe, #66a6ff);
+            background-color: #0047FF; /* Match the sidebar */
             color: #fff;
         }
         .dropdown-header-custom h5 { margin-bottom: 0.25rem; font-weight: 600; }
-        .dropdown-header-custom p { font-size: 0.875rem; color: #f1f1f1; margin-bottom: 0; }
+        /* Adjusted color for better readability on dark background */
+        .dropdown-header-custom p { font-size: 0.875rem; color: rgba(255, 255, 255, 0.85); margin-bottom: 0; }
+        
         .dropdown-menu-custom .dropdown-item { padding: 0.75rem 1.25rem; display: flex; align-items: center; gap: 0.75rem; font-size: 0.95rem; }
         .dropdown-menu-custom .dropdown-item .fa-fw { color: #6b7280; }
 
@@ -115,13 +119,19 @@
             background-color: #0032ba;
             font-weight: 700;
         }
+
+        /* --- ADDED MEDIA QUERIES FOR RESPONSIVENESS --- */
+        @media (max-width: 767.98px) {
+            .main-content {
+                padding: 1.5rem; /* Reduce padding on smaller screens for more space */
+            }
+        }
     </style>
 
     @stack('styles')
 </head>
 <body>
     <div class="main-wrapper">
-        <!-- Sidebar for Desktop -->
         <aside class="sidebar d-none d-lg-block">
             <div class="sidebar-header">
                 <i class="fas fa-pills me-2"></i> PHARMACARE
@@ -148,21 +158,16 @@
             </nav>
         </aside>
 
-        <!-- Main Content Wrapper -->
         <div class="content-wrapper">
-            <!-- Top Navigation -->
             <nav class="navbar navbar-expand-lg navbar-light bg-white border-bottom">
                 <div class="container-fluid">
-                    <!-- Mobile Menu Toggle Button -->
                     <button class="navbar-toggler" type="button" data-bs-toggle="offcanvas" data-bs-target="#mobileSidebar" aria-controls="mobileSidebar">
                         <span class="navbar-toggler-icon"></span>
                     </button>
                     
                     <div class="collapse navbar-collapse">
-                        <!-- This can be used for breadcrumbs or page titles if needed -->
-                    </div>
+                        </div>
                     
-                    <!-- This is the corrected line -->
                     <ul class="navbar-nav ms-auto align-items-center">
                         <li class="nav-item">
                             <a class="nav-link position-relative" href="{{ route('customer.cart') }}">
@@ -207,7 +212,6 @@
                 </div>
             </nav>
 
-            <!-- Page Content -->
             <main class="main-content">
                  @if (session('success'))
                     <div class="alert alert-success alert-dismissible fade show" role="alert">
@@ -216,20 +220,17 @@
                         <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
                     </div>
                 @endif
-                <!-- Other session messages here -->
-
                 @yield('content')
             </main>
         </div>
     </div>
 
-    <!-- Mobile Sidebar (Offcanvas) -->
     <div class="offcanvas offcanvas-start" tabindex="-1" id="mobileSidebar" aria-labelledby="mobileSidebarLabel">
         <div class="offcanvas-header">
             <h5 class="offcanvas-title" id="mobileSidebarLabel">
                 <i class="fas fa-pills me-2"></i> PHARMACARE
             </h5>
-            <button type="button" class="btn-close text-reset" data-bs-dismiss="offcanvas" aria-label="Close"></button>
+            <button type="button" class="btn-close btn-close-white" data-bs-dismiss="offcanvas" aria-label="Close"></button>
         </div>
         <div class="offcanvas-body">
             <nav class="nav flex-column mt-3">
@@ -255,9 +256,7 @@
     <form id="logout-form-2" action="{{ route('logout') }}" method="POST" class="d-none">@csrf</form>
     <form id="logout-form-3" action="{{ route('logout') }}" method="POST" class="d-none">@csrf</form>
 
-    <!-- Bootstrap JS -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
-    <!-- jQuery -->
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
 
     @stack('scripts')
