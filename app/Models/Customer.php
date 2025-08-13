@@ -34,9 +34,9 @@ class Customer extends Authenticatable
         'is_active' => 'boolean',
     ];
 
-    public function cart()
+    public function cartItems()
     {
-        return $this->hasMany(Cart::class);
+    return $this->hasMany(Cart::class);
     }
 
     public function orders()
@@ -56,12 +56,12 @@ class Customer extends Authenticatable
 
     public function getCartCount()
     {
-        return $this->cart()->sum('quantity');
+        return $this->cartItems()->sum('quantity');
     }
 
     public function getCartTotal()
     {
-        return $this->cart()->with('medicine')->get()->sum(function ($item) {
+        return $this->cartItems()->with('medicine')->get()->sum(function ($item) {
             return $item->quantity * $item->medicine->price;
         });
     }
