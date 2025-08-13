@@ -181,6 +181,17 @@ Route::prefix('supplier')->middleware(['auth:supplier'])->name('supplier.')->gro
     // Stock Requests
     Route::get('/stock-requests', [SupplierController::class, 'stockRequests'])->name('stock-requests');
     Route::post('/stock-requests/{id}/fulfill', [SupplierController::class, 'fulfillStockRequest'])->name('stock-requests.fulfill');
+
+    // Pharmacist List
+    Route::get('/pharmacists', [SupplierController::class, 'pharmacists'])->name('pharmacists');
+    
+    // Billing
+    Route::get('/billing', [SupplierController::class, 'billingIndex'])->name('billing.index');
+    Route::post('/billing', [SupplierController::class, 'storeBill'])->name('billing.store');
+    
+    // Search routes for AJAX
+    Route::get('/pharmacists/search', [SupplierController::class, 'searchPharmacists'])->name('pharmacists.search');
+    Route::get('/medicines/search', [SupplierController::class, 'searchMedicines'])->name('medicines.search');
 });
 
 // Customer Routes
@@ -197,6 +208,8 @@ Route::prefix('customer')->middleware(['auth:customer'])->group(function () {
     Route::put('/cart/{id}', [CustomerController::class, 'updateCart'])->name('customer.cart.update');
     Route::delete('/cart/{id}', [CustomerController::class, 'removeFromCart'])->name('customer.cart.remove');
     Route::delete('/cart', [CustomerController::class, 'clearCart'])->name('customer.cart.clear');
+    Route::patch('/cart/update/{id}', [CustomerController::class, 'updateCart'])->name('customer.cart.update');
+    Route::delete('/cart/remove/{id}', [CustomerController::class, 'removeFromCart'])->name('customer.cart.remove');
 
     // Checkout
     Route::get('/checkout', [CustomerController::class, 'checkout'])->name('customer.checkout');

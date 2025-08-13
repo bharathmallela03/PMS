@@ -43,37 +43,41 @@ class CustomerController extends Controller
     {
         $query = Medicine::with('company')->where('is_active', true)->where('quantity', '>', 0);
 
-        if ($request->has('search')) {
+        // Search filter
+        if ($request->filled('search')) {
             $search = $request->search;
-            $query->where(function($q) use ($search) {
+            $query->where(function ($q) use ($search) {
                 $q->where('name', 'like', "%{$search}%")
-                  ->orWhere('brand', 'like', "%{$search}%")
-                  ->orWhere('generic_name', 'like', "%{$search}%");
+                    ->orWhere('brand', 'like', "%{$search}%")
+                    ->orWhere('generic_name', 'like', "%{$search}%");
             });
         }
 
-        if ($request->has('category')) {
+        // Category filter
+        if ($request->filled('category')) {
             $query->where('category', $request->category);
         }
 
-        if ($request->has('price_range')) {
+        // Price range filter
+        if ($request->filled('price_range')) {
             switch ($request->price_range) {
-                case 'under_50':
-                    $query->where('price', '<', 50);
-                    break;
-                case '50_100':
-                    $query->whereBetween('price', [50, 100]);
+                case 'under_100':
+                    $query->where('price', '<', 100);
                     break;
                 case '100_500':
                     $query->whereBetween('price', [100, 500]);
                     break;
-                case 'above_500':
-                    $query->where('price', '>', 500);
+                case '500_1000':
+                    $query->whereBetween('price', [500, 1000]);
+                    break;
+                case 'above_1000':
+                    $query->where('price', '>', 1000);
                     break;
             }
         }
 
-        if ($request->has('sort')) {
+        // **FIXED**: Sorting logic
+        if ($request->filled('sort')) {
             switch ($request->sort) {
                 case 'price_low':
                     $query->orderBy('price', 'asc');
@@ -84,16 +88,17 @@ class CustomerController extends Controller
                 case 'name':
                     $query->orderBy('name', 'asc');
                     break;
+                case 'relevance':
                 default:
-                    $query->latest();
+                    $query->latest('id'); // Default to newest items for relevance
                     break;
             }
         } else {
-            $query->latest();
+            $query->latest('id'); // Default sort if nothing is selected
         }
 
-        $medicines = $query->paginate(12);
-        $categories = Medicine::active()->distinct()->pluck('category')->filter();
+        $medicines = $query->paginate(16)->withQueryString();
+        $categories = Medicine::where('is_active', true)->distinct()->pluck('category')->filter()->sort();
 
         return view('customer.medicines.index', compact('medicines', 'categories'));
     }
@@ -187,9 +192,7 @@ class CustomerController extends Controller
 
     public function updateCart(Request $request, $id)
     {
-        $request->validate([
-            'quantity' => 'required|integer|min:1',
-        ]);
+        $request->validate(['quantity' => 'required|integer|min:1']);
 
         $customer = Auth::guard('customer')->user();
         $cartItem = Cart::where('customer_id', $customer->id)->findOrFail($id);
@@ -199,15 +202,15 @@ class CustomerController extends Controller
             return response()->json([
                 'success' => false,
                 'message' => 'Insufficient stock. Only ' . $cartItem->medicine->quantity . ' items available.'
-            ]);
+            ], 422);
         }
 
         $cartItem->update(['quantity' => $request->quantity]);
 
         return response()->json([
             'success' => true,
-            'message' => 'Cart updated successfully.',
-            'subtotal' => $cartItem->quantity * $cartItem->medicine->price
+            'item_subtotal' => $cartItem->quantity * $cartItem->medicine->price,
+            'summary' => $this->getCartSummary($customer)
         ]);
     }
 
@@ -217,11 +220,33 @@ class CustomerController extends Controller
         $cartItem = Cart::where('customer_id', $customer->id)->findOrFail($id);
         $cartItem->delete();
 
+        $cartIsEmpty = $customer->cartItems()->count() === 0;
+
         return response()->json([
             'success' => true,
-            'message' => 'Item removed from cart successfully.',
-            'cart_count' => $customer->getCartCount()
+            'summary' => $this->getCartSummary($customer),
+            'cart_empty' => $cartIsEmpty,
+            'empty_cart_html' => $cartIsEmpty ? view('customer.cart._empty_cart')->render() : null
         ]);
+    }
+
+    // Add this helper method to your controller to avoid repeating code
+    private function getCartSummary($customer)
+    {
+        $subtotal = $customer->cartItems->sum(function ($item) {
+            return $item->quantity * $item->medicine->price;
+        });
+
+        $shipping = $subtotal > 500 || $subtotal == 0 ? 0 : 50;
+        $tax = $subtotal * 0.05;
+        $total = $subtotal + $shipping + $tax;
+
+        return [
+            'subtotal' => $subtotal,
+            'shipping' => $shipping,
+            'tax' => $tax,
+            'total' => $total,
+        ];
     }
 
     public function clearCart()
@@ -361,10 +386,63 @@ class CustomerController extends Controller
     {
         $customer = Auth::guard('customer')->user();
         $order = Order::with(['items.medicine', 'pharmacist'])
-                     ->where('customer_id', $customer->id)
-                     ->findOrFail($id);
+                    ->where('customer_id', $customer->id)
+                    ->findOrFail($id);
 
-        return view('customer.orders.show', compact('order'));
+        // KEY UPDATE: The timeline now includes a 'Processing' step
+        // and aligns with the statuses from your PharmacistController.
+        $timeline = [
+            'ordered' => ['title' => 'Ordered', 'date' => $order->created_at, 'status' => 'pending', 'icon' => 'fa-check'],
+            'processing' => ['title' => 'Processing', 'date' => null, 'status' => 'pending', 'icon' => 'fa-cogs'],
+            'shipped' => ['title' => 'Shipped', 'date' => $order->shipped_at, 'status' => 'pending', 'icon' => 'fa-truck'],
+            'delivered' => ['title' => 'Delivered', 'date' => $order->delivered_at, 'status' => 'pending', 'icon' => 'fa-box-open'],
+        ];
+
+        // KEY UPDATE: This hierarchy now matches your validation rule exactly.
+        $statusHierarchy = ['pending', 'confirmed', 'processing', 'shipped', 'delivered'];
+        $currentStatusIndex = array_search($order->status, $statusHierarchy);
+
+        // Handle cancelled orders (logic remains the same)
+        if ($order->status === 'cancelled') {
+            $timeline['ordered']['status'] = 'completed';
+            $timeline['cancelled'] = ['title' => 'Cancelled', 'date' => $order->cancelled_at, 'status' => 'active-cancelled', 'icon' => 'fa-times'];
+        }
+        // Handle the standard order flow
+        else if ($currentStatusIndex !== false) {
+            
+            // Mark all previous steps as 'completed' based on the new hierarchy
+            if ($currentStatusIndex >= 2) { // 'processing' or later
+                $timeline['ordered']['status'] = 'completed';
+            }
+            if ($currentStatusIndex >= 3) { // 'shipped' or later
+                $timeline['processing']['status'] = 'completed';
+                $timeline['processing']['date'] = $order->updated_at; // Use last update as fallback date
+            }
+            if ($currentStatusIndex >= 4) { // 'delivered'
+                $timeline['shipped']['status'] = 'completed';
+            }
+
+            // Mark the current step as 'active'
+            switch ($order->status) {
+                case 'pending':
+                case 'confirmed': // Both 'pending' and 'confirmed' mean the order is in the 'Ordered' stage.
+                    $timeline['ordered']['status'] = 'active';
+                    break;
+                case 'processing':
+                    $timeline['processing']['status'] = 'active';
+                    $timeline['processing']['date'] = $order->updated_at;
+                    break;
+                case 'shipped':
+                    $timeline['shipped']['status'] = 'active';
+                    break;
+                case 'delivered':
+                    $timeline['delivered']['status'] = 'active';
+                    break;
+            }
+        }
+        
+        // The view now receives the correctly structured timeline data.
+        return view('customer.orders.show', compact('order', 'timeline'));
     }
 
     public function cancelOrder($id)

@@ -11,6 +11,9 @@ use App\Models\Company;
 use App\Exports\SupplierInventoryExport;
 use App\Imports\MedicinesImport;
 use Maatwebsite\Excel\Facades\Excel;
+use App\Models\User;
+use App\Models\Bill;
+use App\Models\BillItem;
 use Illuminate\Support\Facades\Log;
 
 class SupplierController extends Controller
@@ -263,6 +266,125 @@ class SupplierController extends Controller
         $supplier = Auth::guard('supplier')->user();
         return Excel::download(new SupplierInventoryExport($supplier->id), 'inventory_report.xlsx');
     }
+    public function pharmacists()
+    {
+        // We fetch Users that have a pharmacist profile
+        $pharmacists = User::whereHas('pharmacist')->paginate(15);
+        return view('supplier.pharmacists.index', compact('pharmacists'));
+    }
 
+    /**
+     * Display the billing page with a history of bills.
+     */
+    public function billingIndex()
+    {
+        $supplier = Auth::guard('supplier')->user();
+        $bills = Bill::where('supplier_id', $supplier->id)
+                     ->with('pharmacist.user') // Eager load pharmacist user details
+                     ->latest()
+                     ->paginate(15);
+
+        return view('supplier.billing.index', compact('bills'));
+    }
+
+    /**
+     * Search for pharmacists by name for autocomplete suggestions.
+     */
+    public function searchPharmacists(Request $request)
+    {
+        $query = $request->get('query');
+        $pharmacists = User::whereHas('pharmacist')
+                           ->where('name', 'LIKE', "%{$query}%")
+                           ->select('id', 'name')
+                           ->take(10)
+                           ->get();
+        
+        // We need to get the Pharmacist ID, not the User ID for the bill
+        $results = [];
+        foreach($pharmacists as $user) {
+            $results[] = [
+                'pharmacist_id' => $user->pharmacist->id, // Get the actual pharmacist ID
+                'name' => $user->name,
+            ];
+        }
+
+        return response()->json($results);
+    }
+    
+    /**
+     * Search for medicines for the billing form.
+     */
+    public function searchMedicines(Request $request)
+    {
+        $supplier = Auth::guard('supplier')->user();
+        $query = $request->get('query');
+        
+        $medicines = Medicine::where('supplier_id', $supplier->id)
+                               ->where('name', 'LIKE', "%{$query}%")
+                               ->select('id', 'name', 'price')
+                               ->take(10)
+                               ->get();
+        
+        return response()->json($medicines);
+    }
+
+    /**
+     * Store a new bill for a pharmacist.
+     */
+    public function storeBill(Request $request)
+    {
+        $validatedData = $request->validate([
+            'pharmacist_id' => 'required|exists:pharmacists,id',
+            'pharmacist_name' => 'required|string',
+            'items' => 'required|array|min:1',
+            'items.*.medicine_id' => 'required|exists:medicines,id',
+            'items.*.quantity' => 'required|integer|min:1',
+            'items.*.price' => 'required|numeric|min:0',
+            'items.*.total' => 'required|numeric|min:0',
+            'total_amount' => 'required|numeric|min:0',
+        ]);
+
+        $supplier = Auth::guard('supplier')->user();
+        $subtotal = collect($validatedData['items'])->sum('total');
+
+        // Create the Bill for the pharmacist from the supplier
+        $bill = Bill::create([
+            'supplier_id' => $supplier->id,
+            'pharmacist_id' => $validatedData['pharmacist_id'],
+            'bill_number' => 'SUP-BILL-' . time(),
+            'patient_name' => $validatedData['pharmacist_name'], // Storing Pharmacist name here
+            'subtotal' => $subtotal,
+            'total_amount' => $validatedData['total_amount'],
+            'status' => 'fulfilled', // A supplier bill is considered fulfilled
+        ]);
+
+        // Create bill items and INCREMENT the pharmacist's stock
+        foreach ($validatedData['items'] as $itemData) {
+            BillItem::create([
+                'bill_id' => $bill->id,
+                'medicine_id' => $itemData['medicine_id'],
+                'quantity' => $itemData['quantity'],
+                'price' => $itemData['price'],
+                'total' => $itemData['total'],
+            ]);
+
+            // Find the pharmacist's version of this medicine and increase stock
+            $pharmacistMedicine = Medicine::where('id', $itemData['medicine_id'])
+                                          ->where('pharmacist_id', $validatedData['pharmacist_id'])
+                                          ->first();
+
+            if ($pharmacistMedicine) {
+                $pharmacistMedicine->increment('quantity', $itemData['quantity']);
+            }
+            // Note: This assumes the medicine already exists in the pharmacist's inventory.
+            // A more complex system might create it if it doesn't exist.
+        }
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Bill created successfully and pharmacist stock updated!',
+            'bill_id' => $bill->id,
+        ]);
+    }
     
 }

@@ -77,7 +77,7 @@
                             <tr>
                                 <td>
                                     <div class="d-flex align-items-center">
-                                        <img src="{{ $medicine->photo_url }}" class="rounded me-3" alt="{{ $medicine->name }}" width="40" height="40">
+                                        <!-- <img src="{{ $medicine->photo_url }}" class="rounded me-3" alt="{{ $medicine->name }}" width="40" height="40"> -->
                                         <div>
                                             <strong>{{ $medicine->name }}</strong>
                                             <div class="text-muted small">{{ $medicine->brand }}</div>
