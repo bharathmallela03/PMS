@@ -27,25 +27,36 @@ class AuthController extends Controller
         ]);
 
         if ($validator->fails()) {
-            return response()->json(['success' => false, 'errors' => $validator->errors()], 422);
+            return response()->json([
+                'success' => false, 
+                'message' => 'Validation failed',
+                'errors' => $validator->errors()
+            ], 422);
         }
 
-        $customer = Customer::create([
-            'name' => $request->name,
-            'email' => $request->email,
-            'contact_number' => $request->contact_number,
-            'password' => Hash::make($request->password),
-            'is_active' => true,
-        ]);
+        try {
+            $customer = Customer::create([
+                'name' => $request->name,
+                'email' => $request->email,
+                'contact_number' => $request->contact_number,
+                'password' => Hash::make($request->password),
+                'is_active' => true,
+            ]);
 
-        $token = $customer->createToken('authToken')->accessToken;
+            $token = $customer->createToken('authToken');
 
-        return response()->json([
-            'success' => true,
-            'message' => 'Registration successful!',
-            'user' => $customer,
-            'token' => $token
-        ], 201);
+            return response()->json([
+                'success' => true,
+                'message' => 'Registration successful!',
+                'user' => $customer,
+                'token' => $token
+            ], 201);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Registration failed. Please try again.'
+            ], 500);
+        }
     }
 
     /**
@@ -62,29 +73,51 @@ class AuthController extends Controller
         ]);
 
         if ($validator->fails()) {
-            return response()->json(['success' => false, 'errors' => $validator->errors()], 422);
+            return response()->json([
+                'success' => false, 
+                'message' => 'Validation failed',
+                'errors' => $validator->errors()
+            ], 422);
         }
 
         $credentials = $request->only('email', 'password');
 
         if (!Auth::guard('customer')->attempt($credentials)) {
-            return response()->json(['success' => false, 'message' => 'Invalid credentials.'], 401);
+            return response()->json([
+                'success' => false, 
+                'message' => 'Invalid email or password.'
+            ], 401);
         }
 
         $customer = Auth::guard('customer')->user();
 
         if (!$customer->is_active) {
-            return response()->json(['success' => false, 'message' => 'Your account has been deactivated.'], 403);
+            Auth::guard('customer')->logout();
+            return response()->json([
+                'success' => false, 
+                'message' => 'Your account has been deactivated. Please contact support.'
+            ], 403);
         }
 
-        $token = $customer->createToken('authToken')->accessToken;
+        // Revoke all existing tokens for this customer (optional - for single session)
+        // $customer->tokens()->delete();
+
+        $token = $customer->createToken('authToken');
 
         return response()->json([
             'success' => true,
             'message' => 'Login successful!',
-            'user' => $customer,
+            'user' => [
+                'id' => $customer->id,
+                'name' => $customer->name,
+                'email' => $customer->email,
+                'contact_number' => $customer->contact_number,
+                'is_active' => $customer->is_active,
+                'created_at' => $customer->created_at,
+                'updated_at' => $customer->updated_at,
+            ],
             'token' => $token
-        ]);
+        ], 200);
     }
 
     /**
@@ -95,11 +128,36 @@ class AuthController extends Controller
      */
     public function logout(Request $request)
     {
-        $request->user()->token()->revoke();
+        try {
+            // For Laravel Sanctum
+            $request->user()->currentAccessToken()->delete();
+            
+            // Alternative: For Laravel Passport
+            // $request->user()->token()->revoke();
 
+            return response()->json([
+                'success' => true,
+                'message' => 'Successfully logged out.'
+            ], 200);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Logout failed.'
+            ], 500);
+        }
+    }
+
+    /**
+     * Get the authenticated customer's profile.
+     *
+     * @param  \Illuminate\Http\Request  $request
+     * @return \Illuminate\Http\JsonResponse
+     */
+    public function profile(Request $request)
+    {
         return response()->json([
             'success' => true,
-            'message' => 'Successfully logged out.'
-        ]);
+            'user' => $request->user()
+        ], 200);
     }
 }
