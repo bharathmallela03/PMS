@@ -74,6 +74,57 @@ Route::prefix('admin')->middleware(['auth:admin'])->group(function () {
 });
 
 // Pharmacist Routes
+// Route::prefix('pharmacist')->middleware(['auth:pharmacist'])->group(function () {
+//     Route::get('/dashboard', [PharmacistController::class, 'dashboard'])->name('pharmacist.dashboard');
+
+//     // Medicine Management
+//     Route::get('/medicines', [PharmacistController::class, 'medicines'])->name('pharmacist.medicines');
+//     Route::get('/medicines/create', [PharmacistController::class, 'createMedicine'])->name('pharmacist.medicines.create');
+//     Route::post('/medicines', [PharmacistController::class, 'storeMedicine'])->name('pharmacist.medicines.store');
+//     Route::get('/medicines/{id}/edit', [PharmacistController::class, 'editMedicine'])->name('pharmacist.medicines.edit');
+//     Route::put('/medicines/{id}', [PharmacistController::class, 'updateMedicine'])->name('pharmacist.medicines.update');
+//     Route::delete('/medicines/{id}', [PharmacistController::class, 'deleteMedicine'])->name('pharmacist.medicines.delete');
+//     Route::post('/medicines/{id}/update-stock', [PharmacistController::class, 'updateStock'])->name('pharmacist.medicines.update-stock');
+//     Route::get('/medicines/export', [PharmacistController::class, 'exportMedicines'])->name('pharmacist.medicines.export');
+//     Route::get('/medicines/import', [PharmacistController::class, 'importMedicinesView'])->name('pharmacist.medicines.import.view');
+//     Route::post('/medicines/import', [PharmacistController::class, 'importMedicinesStore'])->name('pharmacist.medicines.import.store');
+//     Route::get('/medicines/import/template', [PharmacistController::class, 'downloadImportTemplate'])->name('pharmacist.medicines.import.template');
+
+//     // Company Management
+//     Route::get('/companies', [PharmacistController::class, 'companies'])->name('pharmacist.companies');
+//     Route::post('/companies', [PharmacistController::class, 'storeCompany'])->name('pharmacist.companies.store');
+
+//     // Billing
+//     Route::get('/billing', [PharmacistController::class, 'billingIndex'])->name('pharmacist.billing');
+//     Route::post('/billing/store', [PharmacistController::class, 'storeBilling'])->name('pharmacist.billing.store');
+//     Route::get('/billing/{id}', [PharmacistController::class, 'showBill'])->name('pharmacist.billing.show');
+//     Route::get('/billing/{id}/print', [PharmacistController::class, 'printBill'])->name('pharmacist.billing.print');
+//     Route::put('/billing/{id}/status', [PharmacistController::class, 'updateBillStatus'])->name('pharmacist.billing.status');
+//     Route::get('/billing/search', [PharmacistController::class, 'searchBills'])->name('pharmacist.billing.search');
+//     Route::get('/search-medicines', [PharmacistController::class, 'searchMedicines'])->name('search.medicines');
+//     Route::get('/billing/{bill}', [PharmacistController::class, 'showBill'])->name('pharmacist.billing.show');
+//     Route::get('/billing/{bill}/print', [PharmacistController::class, 'printBill'])->name('pharmacist.billing.print');
+//     Route::delete('/billing/{bill}', [PharmacistController::class, 'deleteBill'])->name('pharmacist.billing.delete');
+
+//     // Orders
+//     Route::get('/orders', [PharmacistController::class, 'orders'])->name('pharmacist.orders');
+//     Route::put('/orders/{id}/status', [PharmacistController::class, 'updateOrderStatus'])->name('pharmacist.orders.status');
+
+//     Route::get('/orders/{id}', [PharmacistController::class, 'showOrder'])->name('pharmacist.orders.show');
+//     Route::get('/orders/{id}/invoice/download', [PharmacistController::class, 'downloadInvoice'])->name('pharmacist.billing.invoice.download');
+//     Route::put('/orders/{id}/status', [PharmacistController::class, 'updateOrderStatus'])->name('pharmacist.orders.status');
+
+//     // Reports
+//     Route::get('/reports/sales', [PharmacistController::class, 'salesReport'])->name('pharmacist.reports.sales');
+//     Route::get('/reports/sales/export', [PharmacistController::class, 'exportSalesReport'])->name('pharmacist.reports.sales.export');
+//     Route::get('/reports/inventory', [PharmacistController::class, 'inventoryReport'])->name('pharmacist.reports.inventory');
+
+//     // Stock Alerts
+//     Route::get('/stock-alerts', [PharmacistController::class, 'stockAlerts'])->name('pharmacist.stock-alerts');
+//     Route::post('/stock-alerts/request-restock', [PharmacistController::class, 'requestRestock'])->name('pharmacist.restock.request');
+
+// });
+// Pharmacist Routes
 Route::prefix('pharmacist')->middleware(['auth:pharmacist'])->group(function () {
     Route::get('/dashboard', [PharmacistController::class, 'dashboard'])->name('pharmacist.dashboard');
 
@@ -86,6 +137,11 @@ Route::prefix('pharmacist')->middleware(['auth:pharmacist'])->group(function () 
     Route::delete('/medicines/{id}', [PharmacistController::class, 'deleteMedicine'])->name('pharmacist.medicines.delete');
     Route::post('/medicines/{id}/update-stock', [PharmacistController::class, 'updateStock'])->name('pharmacist.medicines.update-stock');
     Route::get('/medicines/export', [PharmacistController::class, 'exportMedicines'])->name('pharmacist.medicines.export');
+    
+    // Medicine Import
+    Route::get('/medicines/import', [PharmacistController::class, 'importMedicinesView'])->name('pharmacist.medicines.import.view');
+    Route::post('/medicines/import', [PharmacistController::class, 'importMedicinesStore'])->name('pharmacist.medicines.import.store');
+    Route::get('/medicines/import/template', [PharmacistController::class, 'downloadImportTemplate'])->name('pharmacist.medicines.import.template');
 
     // Company Management
     Route::get('/companies', [PharmacistController::class, 'companies'])->name('pharmacist.companies');
@@ -94,23 +150,22 @@ Route::prefix('pharmacist')->middleware(['auth:pharmacist'])->group(function () 
     // Billing
     Route::get('/billing', [PharmacistController::class, 'billingIndex'])->name('pharmacist.billing');
     Route::post('/billing/store', [PharmacistController::class, 'storeBilling'])->name('pharmacist.billing.store');
-    Route::get('/billing/{id}', [PharmacistController::class, 'showBill'])->name('pharmacist.billing.show');
-    Route::get('/billing/{id}/print', [PharmacistController::class, 'printBill'])->name('pharmacist.billing.print');
-    Route::put('/billing/{id}/status', [PharmacistController::class, 'updateBillStatus'])->name('pharmacist.billing.status');
     Route::get('/billing/search', [PharmacistController::class, 'searchBills'])->name('pharmacist.billing.search');
     Route::get('/search-medicines', [PharmacistController::class, 'searchMedicines'])->name('search.medicines');
+    Route::get('/customers/search', [PharmacistController::class, 'searchCustomers'])->name('pharmacist.customers.search');
+    
+    // Billing CRUD Actions
     Route::get('/billing/{bill}', [PharmacistController::class, 'showBill'])->name('pharmacist.billing.show');
     Route::get('/billing/{bill}/print', [PharmacistController::class, 'printBill'])->name('pharmacist.billing.print');
+    Route::put('/billing/{bill}/status', [PharmacistController::class, 'updateBillStatus'])->name('pharmacist.billing.status');
     Route::delete('/billing/{bill}', [PharmacistController::class, 'deleteBill'])->name('pharmacist.billing.delete');
 
     // Orders
     Route::get('/orders', [PharmacistController::class, 'orders'])->name('pharmacist.orders');
-    Route::put('/orders/{id}/status', [PharmacistController::class, 'updateOrderStatus'])->name('pharmacist.orders.status');
-
     Route::get('/orders/{id}', [PharmacistController::class, 'showOrder'])->name('pharmacist.orders.show');
-    Route::get('/orders/{id}/invoice/download', [PharmacistController::class, 'downloadInvoice'])->name('pharmacist.billing.invoice.download');
     Route::put('/orders/{id}/status', [PharmacistController::class, 'updateOrderStatus'])->name('pharmacist.orders.status');
-
+    Route::get('/orders/{id}/invoice/download', [PharmacistController::class, 'downloadInvoice'])->name('pharmacist.orders.invoice.download');
+    
     // Reports
     Route::get('/reports/sales', [PharmacistController::class, 'salesReport'])->name('pharmacist.reports.sales');
     Route::get('/reports/sales/export', [PharmacistController::class, 'exportSalesReport'])->name('pharmacist.reports.sales.export');
@@ -119,9 +174,7 @@ Route::prefix('pharmacist')->middleware(['auth:pharmacist'])->group(function () 
     // Stock Alerts
     Route::get('/stock-alerts', [PharmacistController::class, 'stockAlerts'])->name('pharmacist.stock-alerts');
     Route::post('/stock-alerts/request-restock', [PharmacistController::class, 'requestRestock'])->name('pharmacist.restock.request');
-
 });
-
 // Supplier Routes
 // Route::prefix('supplier')->middleware(['auth:supplier'])->group(function () {
 //     Route::get('/dashboard', [SupplierController::class, 'dashboard'])->name('supplier.dashboard');

@@ -8,6 +8,8 @@
     <title>💊 @yield('title', 'Pharmacist Dashboard') - PharmaCare</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://unpkg.com/dropzone@5/dist/min/dropzone.min.css" type="text/css" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css"/>
     
     <style>
         /* Base layout styles */
@@ -117,6 +119,23 @@
             padding: 0;
         }
 
+         /* Custom style for the modal header */
+        .bg-sidebar {
+            background-color: #0047FF; /* <-- CHANGE THIS to your sidebar's hex color code */
+            color: white; /* This makes the title text white */
+        }
+
+        /* This makes the 'X' close button white */
+        .bg-sidebar .btn-close {
+            filter: invert(1) grayscale(100) brightness(200%);
+        }
+        #import-dropzone .dz-message {
+        transition: transform 0.3s ease-in-out;
+    }
+
+    #import-dropzone:hover .dz-message {
+        transform: scale(1.05); /* Gently scales up the content */
+    }
         /* Responsive adjustments */
         @media (max-width: 991.98px) {
             .sidebar {
@@ -295,6 +314,83 @@
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://unpkg.com/dropzone@5/dist/min/dropzone.min.js"></script>
+
+    <script>
+        // Prevent Dropzone from auto-discovering and attaching to everything
+        Dropzone.autoDiscover = false;
+
+        // Initialize Dropzone
+        var myDropzone = new Dropzone("#import-dropzone", {
+            url: "{{ route('pharmacist.medicines.import.store') }}",
+            autoProcessQueue: false, // Don't upload automatically
+            uploadMultiple: false,
+            parallelUploads: 1,
+            maxFiles: 1,
+            paramName: 'import_file', // The name of the file input field
+            acceptedFiles: ".xlsx,.xls,.csv",
+            addRemoveLinks: true,
+            init: function() {
+                var submitButton = document.querySelector("#upload-button");
+                var myDropzone = this; // Closure
+
+                // Action for the "Save" button
+                submitButton.addEventListener("click", function() {
+                    myDropzone.processQueue(); // Tell Dropzone to process the queue
+                });
+
+                // Handle successful upload
+                this.on("success", function(file, response) {
+                    // Redirect or show a success message
+                    window.location.href = "{{ route('pharmacist.medicines') }}?success=1";
+                });
+
+                // Handle errors
+                this.on("error", function(file, response) {
+                    // Get the error message from Laravel's JSON response
+                    var message = (typeof response.message !== "undefined") ? response.message : "An error occurred.";
+                    
+                    // Display the error beneath the file
+                    var errorDisplay = document.createElement('div');
+                    errorDisplay.className = 'dz-error-message';
+                    errorDisplay.textContent = message;
+                    file.previewElement.appendChild(errorDisplay);
+                });
+
+                // When a new file is added, remove the previous one
+                 this.on("addedfile", function() {
+                    if (this.files.length > 1) {
+                        this.removeFile(this.files[0]);
+                    }
+                });
+            }
+        });
+    </script>
+    <script>
+        // Make sure you have jQuery loaded in your project
+        $(document).ready(function() {
+            // Target the Dropzone element by its ID
+            $('#import-dropzone').hover(
+                function() {
+                    // When the mouse ENTERS the area
+                    // Find the icon and add the pulsing animation classes
+                    $(this).find('.fa-cloud-upload-alt').addClass('animate__animated animate__pulse animate__infinite');
+                },
+                function() {
+                    // When the mouse LEAVES the area
+                    // Find the icon and remove the classes to stop the animation
+                    $(this).find('.fa-cloud-upload-alt').removeClass('animate__animated animate__pulse animate__infinite');
+                }
+            );
+        });
+    </script>
+    
+</body>
+</html>
+    
+    @stack('scripts') {{-- If you use this pattern --}}
+</body>
+</html>
 
     @stack('scripts')
 </body>

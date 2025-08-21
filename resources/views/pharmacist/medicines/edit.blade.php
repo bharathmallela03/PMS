@@ -39,7 +39,50 @@
             <div class="col-md-6 mb-3">
                 <label for="quantity" class="form-label">Quantity</label>
                 <input type="number" class="form-control" id="quantity" name="quantity" value="{{ old('quantity', $medicine->quantity) }}" required>
+            </div>{{-- Generic Name --}}
+            <div class="col-md-6 mb-3">
+                <label for="generic_name" class="form-label">Generic Name (Optional)</label>
+                <input type="text" class="form-control" id="generic_name" name="generic_name" value="{{ old('generic_name', $medicine->generic_name) }}">
             </div>
+
+            {{-- Category --}}
+            <div class="col-md-6 mb-3">
+                <label for="category" class="form-label">Category</label>
+                <input type="text" class="form-control" id="category" name="category" value="{{ old('category', $medicine->category) }}" required>
+            </div>
+
+            {{-- Cost Price --}}
+            <div class="col-md-6 mb-3">
+                <label for="cost_price" class="form-label">Cost Price ($)</label>
+                <input type="number" step="0.01" class="form-control" id="cost_price" name="cost_price" value="{{ old('cost_price', $medicine->cost_price) }}" required>
+            </div>
+
+            {{-- Batch Number --}}
+            <div class="col-md-6 mb-3">
+                <label for="batch_number" class="form-label">Batch Number</label>
+                <input type="text" class="form-control" id="batch_number" name="batch_number" value="{{ old('batch_number', $medicine->batch_number) }}" required>
+            </div>
+            
+            {{-- Company --}}
+            <div class="col-md-6 mb-3">
+                <label for="company_id" class="form-label">Company</label>
+                <select class="form-control" id="company_id" name="company_id" required>
+                    <option value="">Select a Company</option>
+                    @foreach($companies as $company)
+                        <option value="{{ $company->id }}" {{ old('company_id', $medicine->company_id) == $company->id ? 'selected' : '' }}>
+                            {{ $company->name }}
+                        </option>
+                    @endforeach
+                </select>
+            </div>
+
+            {{-- Minimum Stock --}}
+            <div class="col-md-6 mb-3">
+                <label for="minimum_stock" class="form-label">Minimum Stock Alert</label>
+                <input type="number" class="form-control" id="minimum_stock" name="minimum_stock" value="{{ old('minimum_stock', $medicine->minimum_stock) }}">
+            </div>
+
+            
 
              {{-- Price --}}
             <div class="col-md-6 mb-3">
@@ -52,7 +95,11 @@
                 <label for="expiry_date" class="form-label">Expiry Date</label>
                 <input type="date" class="form-control" id="expiry_date" name="expiry_date" value="{{ old('expiry_date', $medicine->expiry_date->format('Y-m-d')) }}" required>
             </div>
-
+    {{-- Description --}}
+            <div class="col-12 mb-3">
+                <label for="description" class="form-label">Description (Optional)</label>
+                <textarea class="form-control" id="description" name="description" rows="3">{{ old('description', $medicine->description) }}</textarea>
+            </div>
             {{-- Photo Upload --}}
             <div class="col-md-6 mb-3">
                 <label for="photo" class="form-label">Medicine Photo</label>

@@ -19,7 +19,7 @@
     .table thead {
         background-color: #f3f4f6;
     }
-    
+
     .table th {
         font-weight: 600;
         color: #374151;
@@ -59,11 +59,11 @@
     .suggestion-item:hover {
         background-color: #f3f4f6;
     }
-    
+
     .suggestion-item .medicine-name {
         font-weight: 600;
     }
-    
+
     .suggestion-item .medicine-info {
         font-size: 0.875rem;
         color: #6b7280;
@@ -76,7 +76,7 @@
         padding: 1.5rem;
         border-radius: 0.5rem;
     }
-    
+
     .total-row {
         display: flex;
         justify-content: space-between;
@@ -84,11 +84,11 @@
         padding: 0.5rem 0;
         font-size: 1rem;
     }
-    
+
     .total-row:not(:last-child) {
         border-bottom: 1px solid #e5e7eb;
     }
-    
+
     .total-row strong {
         font-weight: 600;
         color: #111827;
@@ -164,10 +164,10 @@
                     </tbody>
                 </table>
             </div>
-             @if(isset($bills) && $bills->hasPages())
-                <div class="d-flex justify-content-center mt-4">
-                    {{ $bills->links() }}
-                </div>
+            @if(isset($bills) && $bills->hasPages())
+            <div class="d-flex justify-content-center mt-4">
+                {{ $bills->links() }}
+            </div>
             @endif
         </div>
     </div>
@@ -188,30 +188,52 @@
                     <div class="row mb-3">
                         <div class="col-md-4">
                             <label class="form-label">Patient Name</label>
-                            <input type="text" class="form-control" name="patient_name" required>
+                            <input type="text" class="form-control" name="patient_name" id="patientNameInput" required>
                         </div>
-                        <div class="col-md-4">
+                        <div class="col-md-4 medicine-search-container"> {{-- Container for positioning --}}
                             <label class="form-label">Phone Number</label>
-                            <input type="tel" class="form-control" name="patient_phone">
+                            <input type="tel" class="form-control" name="patient_phone" id="patientPhoneInput">
+                            <div class="medicine-suggestions" id="customerSuggestions"></div> {{-- Suggestions dropdown --}}
                         </div>
                         <div class="col-md-4">
                             <label class="form-label">Address</label>
-                            <input type="text" class="form-control" name="patient_address">
+                            <input type="text" class="form-control" name="patient_address" id="patientAddressInput">
                         </div>
                     </div>
-                    
+
                     <hr class="my-4">
-                    
+
                     <h6>Medicine Items</h6>
                     <div id="billItems">
                         <!-- Bill items will be added here by JavaScript -->
                     </div>
-                    
+
                     <button type="button" class="btn btn-outline-primary mt-2" id="addItemBtn">
                         <i class="fas fa-plus me-2"></i>Add Item
                     </button>
-                    
+
                     <hr class="my-4">
+                    <h6>Payment Method</h6>
+                    <div class="mb-3">
+                        <div class="form-check form-check-inline">
+                            <input class="form-check-input" type="radio" name="payment_method" id="paymentCash" value="cash" checked>
+                            <label class="form-check-label" for="paymentCash">
+                                <i class="fas fa-money-bill-wave"></i> Cash
+                            </label>
+                        </div>
+                        <div class="form-check form-check-inline">
+                            <input class="form-check-input" type="radio" name="payment_method" id="paymentUpi" value="upi">
+                            <label class="form-check-label" for="paymentUpi">
+                                <i class="fab fa-google-pay"></i> UPI
+                            </label>
+                        </div>
+                        <div class="form-check form-check-inline">
+                            <input class="form-check-input" type="radio" name="payment_method" id="paymentCard" value="card">
+                            <label class="form-check-label" for="paymentCard">
+                                <i class="fas fa-credit-card"></i> Card
+                            </label>
+                        </div>
+                    </div>
 
                     <div class="row justify-content-end">
                         <div class="col-lg-5">
@@ -245,14 +267,15 @@
 
 @push('scripts')
 <script>
-document.addEventListener('DOMContentLoaded', function() {
-    const billItemsContainer = document.getElementById('billItems');
-    const addItemBtn = document.getElementById('addItemBtn');
-    let searchTimeout;
+    document.addEventListener('DOMContentLoaded', function() {
+        const billItemsContainer = document.getElementById('billItems');
+        const addItemBtn = document.getElementById('addItemBtn');
+        let searchTimeout;
 
-    const addItem = () => {
-        const itemIndex = Date.now();
-        const itemHtml = `
+
+        const addItem = () => {
+            const itemIndex = Date.now();
+            const itemHtml = `
             <div class="row align-items-center bill-item mb-2">
                 <div class="col-md-4">
                     <div class="medicine-search-container">
@@ -274,112 +297,172 @@ document.addEventListener('DOMContentLoaded', function() {
                     <button type="button" class="btn btn-sm btn-outline-danger remove-item-btn w-100">Remove</button>
                 </div>
             </div>`;
-        billItemsContainer.insertAdjacentHTML('beforeend', itemHtml);
-    };
+            billItemsContainer.insertAdjacentHTML('beforeend', itemHtml);
+        };
 
-    const calculateItemTotal = (item) => {
-        const quantity = parseFloat(item.querySelector('.quantity-input').value) || 0;
-        const price = parseFloat(item.querySelector('.price-input').value) || 0;
-        item.querySelector('.total-input').value = (quantity * price).toFixed(2);
-        calculateGrandTotal();
-    };
+        const calculateItemTotal = (item) => {
+            const quantity = parseFloat(item.querySelector('.quantity-input').value) || 0;
+            const price = parseFloat(item.querySelector('.price-input').value) || 0;
+            item.querySelector('.total-input').value = (quantity * price).toFixed(2);
+            calculateGrandTotal();
+        };
 
-    const calculateGrandTotal = () => {
-        let subtotal = 0;
-        document.querySelectorAll('.total-input').forEach(input => {
-            subtotal += parseFloat(input.value) || 0;
+        const calculateGrandTotal = () => {
+            let subtotal = 0;
+            document.querySelectorAll('.total-input').forEach(input => {
+                subtotal += parseFloat(input.value) || 0;
+            });
+
+            const discountPercent = parseFloat(document.getElementById('discount').value) || 0;
+            const discountAmount = (subtotal * discountPercent) / 100;
+            const grandTotal = subtotal - discountAmount;
+
+            document.getElementById('subtotalAmount').textContent = `₹${subtotal.toFixed(2)}`;
+            document.getElementById('grandTotalAmount').textContent = `₹${grandTotal.toFixed(2)}`;
+            document.getElementById('grandTotal').value = grandTotal.toFixed(2);
+        };
+
+        const patientPhoneInput = document.getElementById('patientPhoneInput');
+        const customerSuggestionsDiv = document.getElementById('customerSuggestions');
+        let customerSearchTimeout;
+        // Add these new functions and listeners
+
+        const searchCustomers = async (query) => {
+            try {
+                const response = await fetch(`{{ route('pharmacist.customers.search') }}?query=${encodeURIComponent(query)}`);
+                const customers = await response.json();
+                customerSuggestionsDiv.innerHTML = customers.map(cust => `
+            <div class="suggestion-item" 
+                 data-name="${escapeHtml(cust.patient_name)}" 
+                 data-phone="${escapeHtml(cust.patient_phone)}" 
+                 data-address="${escapeHtml(cust.patient_address || '')}">
+                <div class="medicine-name">${escapeHtml(cust.patient_name)}</div>
+                <div class="medicine-info"><span>${escapeHtml(cust.patient_phone)}</span></div>
+            </div>
+        `).join('');
+                customerSuggestionsDiv.style.display = customers.length > 0 ? 'block' : 'none';
+            } catch (error) {
+                console.error('Customer search error:', error);
+            }
+        };
+
+        // Helper function to prevent HTML injection
+        const escapeHtml = (unsafe) => {
+            if (unsafe === null || unsafe === undefined) return '';
+            return unsafe
+                .replace(/&/g, "&amp;")
+                .replace(/</g, "&lt;")
+                .replace(/>/g, "&gt;")
+                .replace(/"/g, "&quot;")
+                .replace(/'/g, "&#039;");
+        };
+
+        patientPhoneInput.addEventListener('input', () => {
+            const query = patientPhoneInput.value.trim();
+            clearTimeout(customerSearchTimeout);
+            if (query.length >= 3) {
+                customerSearchTimeout = setTimeout(() => searchCustomers(query), 300);
+            } else {
+                customerSuggestionsDiv.style.display = 'none';
+            }
         });
 
-        const discountPercent = parseFloat(document.getElementById('discount').value) || 0;
-        const discountAmount = (subtotal * discountPercent) / 100;
-        const grandTotal = subtotal - discountAmount;
-
-        document.getElementById('subtotalAmount').textContent = `₹${subtotal.toFixed(2)}`;
-        document.getElementById('grandTotalAmount').textContent = `₹${grandTotal.toFixed(2)}`;
-        document.getElementById('grandTotal').value = grandTotal.toFixed(2);
-    };
-
-    billItemsContainer.addEventListener('input', e => {
-        const target = e.target;
-        if (target.classList.contains('quantity-input') || target.classList.contains('price-input')) {
-            calculateItemTotal(target.closest('.bill-item'));
-        }
-        if (target.classList.contains('medicine-search')) {
-            const query = target.value.trim();
-            const suggestionsDiv = target.closest('.medicine-search-container').querySelector('.medicine-suggestions');
-            clearTimeout(searchTimeout);
-            if (query.length >= 2) {
-                searchTimeout = setTimeout(() => searchMedicines(query, suggestionsDiv), 300);
-            } else {
-                suggestionsDiv.style.display = 'none';
+        customerSuggestionsDiv.addEventListener('click', e => {
+            const suggestion = e.target.closest('.suggestion-item');
+            if (suggestion) {
+                document.getElementById('patientNameInput').value = suggestion.dataset.name;
+                document.getElementById('patientPhoneInput').value = suggestion.dataset.phone;
+                document.getElementById('patientAddressInput').value = suggestion.dataset.address;
+                customerSuggestionsDiv.style.display = 'none';
             }
-        }
-    });
-    
-    document.getElementById('discount').addEventListener('input', calculateGrandTotal);
+        });
 
-    const searchMedicines = async (query, suggestionsDiv) => {
-        try {
-            const response = await fetch(`{{ route('search.medicines') }}?query=${encodeURIComponent(query)}`);
-            const medicines = await response.json();
-            suggestionsDiv.innerHTML = medicines.map(med => `
+        billItemsContainer.addEventListener('input', e => {
+            const target = e.target;
+            if (target.classList.contains('quantity-input') || target.classList.contains('price-input')) {
+                calculateItemTotal(target.closest('.bill-item'));
+            }
+            if (target.classList.contains('medicine-search')) {
+                const query = target.value.trim();
+                const suggestionsDiv = target.closest('.medicine-search-container').querySelector('.medicine-suggestions');
+                clearTimeout(searchTimeout);
+                if (query.length >= 2) {
+                    searchTimeout = setTimeout(() => searchMedicines(query, suggestionsDiv), 300);
+                } else {
+                    suggestionsDiv.style.display = 'none';
+                }
+            }
+        });
+
+        document.getElementById('discount').addEventListener('input', calculateGrandTotal);
+
+        const searchMedicines = async (query, suggestionsDiv) => {
+            try {
+                const response = await fetch(`{{ route('search.medicines') }}?query=${encodeURIComponent(query)}`);
+                const medicines = await response.json();
+                suggestionsDiv.innerHTML = medicines.map(med => `
                 <div class="suggestion-item" data-id="${med.id}" data-name="${med.name}" data-price="${med.price}" data-quantity="${med.quantity}">
                     <div class="medicine-name">${med.name}</div>
                     <div class="medicine-info"><span>₹${med.price}</span><span>Stock: ${med.quantity}</span></div>
                 </div>
             `).join('');
-            suggestionsDiv.style.display = 'block';
-        } catch (error) {
-            console.error('Search error:', error);
-        }
-    };
-
-    billItemsContainer.addEventListener('click', e => {
-        if (e.target.closest('.suggestion-item')) {
-            const suggestion = e.target.closest('.suggestion-item');
-            const item = suggestion.closest('.bill-item');
-            item.querySelector('.medicine-search').value = suggestion.dataset.name;
-            item.querySelector('.medicine-id').value = suggestion.dataset.id;
-            item.querySelector('.price-input').value = suggestion.dataset.price;
-            item.querySelector('.quantity-input').setAttribute('max', suggestion.dataset.quantity);
-            suggestion.closest('.medicine-suggestions').style.display = 'none';
-            calculateItemTotal(item);
-        }
-        if (e.target.classList.contains('remove-item-btn')) {
-            if (billItemsContainer.children.length > 1) {
-                e.target.closest('.bill-item').remove();
-                calculateGrandTotal();
-            } else {
-                alert('At least one item is required.');
+                suggestionsDiv.style.display = 'block';
+            } catch (error) {
+                console.error('Search error:', error);
             }
-        }
-    });
+        };
 
-    addItemBtn.addEventListener('click', addItem);
-    addItem(); // Initialize with one item
-
-    document.getElementById('saveBillBtn').addEventListener('click', async () => {
-        const form = document.getElementById('newBillForm');
-        const formData = new FormData(form);
-        
-        try {
-            const response = await fetch('{{ route("pharmacist.billing.store") }}', {
-                method: 'POST',
-                body: new URLSearchParams(formData),
-                headers: { 'X-CSRF-TOKEN': '{{ csrf_token() }}' }
-            });
-            const data = await response.json();
-            if (data.success) {
-                alert('Bill saved successfully!');
-                window.location.reload();
-            } else {
-                alert('Error: ' + data.message);
+        billItemsContainer.addEventListener('click', e => {
+            if (e.target.closest('.suggestion-item')) {
+                const suggestion = e.target.closest('.suggestion-item');
+                const item = suggestion.closest('.bill-item');
+                item.querySelector('.medicine-search').value = suggestion.dataset.name;
+                item.querySelector('.medicine-id').value = suggestion.dataset.id;
+                item.querySelector('.price-input').value = suggestion.dataset.price;
+                item.querySelector('.quantity-input').setAttribute('max', suggestion.dataset.quantity);
+                suggestion.closest('.medicine-suggestions').style.display = 'none';
+                calculateItemTotal(item);
             }
-        } catch (error) {
-            console.error('Save error:', error);
-            alert('An error occurred while saving the bill.');
-        }
+            if (e.target.classList.contains('remove-item-btn')) {
+                if (billItemsContainer.children.length > 1) {
+                    e.target.closest('.bill-item').remove();
+                    calculateGrandTotal();
+                } else {
+                    alert('At least one item is required.');
+                }
+            }
+        });
+
+        addItemBtn.addEventListener('click', addItem);
+        addItem(); // Initialize with one item
+
+        document.getElementById('saveBillBtn').addEventListener('click', async () => {
+            const form = document.getElementById('newBillForm');
+            const formData = new FormData(form);
+
+            try {
+                const response = await fetch('{{ route("pharmacist.billing.store") }}', {
+                    method: 'POST',
+                    body: formData, // <-- Pass the FormData object directly
+                    headers: {
+                        'X-CSRF-TOKEN': '{{ csrf_token() }}',
+                        'Accept': 'application/json',
+                    }
+                });
+
+
+                const data = await response.json();
+                if (data.success) {
+                    alert('Bill saved successfully!');
+                    window.location.reload();
+                } else {
+                    alert('Error: ' + data.message);
+                }
+            } catch (error) {
+                console.error('Save error:', error);
+                alert('An error occurred while saving the bill.');
+            }
+        });
     });
-});
 </script>
 @endpush

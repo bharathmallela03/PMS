@@ -51,7 +51,7 @@ class Pharmacist extends Authenticatable
 
     public function getAuthIdentifierName()
     {
-        return 'email';
+        return 'id';
     }
 
     public function needsPasswordSetup()

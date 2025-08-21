@@ -6,7 +6,7 @@
     <title>Invoice #{{ $order->id }}</title>
     <style>
         body {
-            font-family: 'Helvetica', sans-serif;
+            font-family: 'DejaVu Sans', sans-serif;
             font-size: 14px;
             color: #333;
         }
