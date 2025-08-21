@@ -146,7 +146,7 @@
                                         <button class="text-green-600 hover:text-green-800 p-2 hover:bg-green-50 rounded-lg transition-all update-status-btn" title="Update Status" data-order-id="{{ $order->id }}" data-current-status="{{ $order->status }}">
                                              <i class="fas fa-edit"></i>
                                         </button>
-                                        <a href="{{ route('pharmacist.billing.invoice.download', $order->id) }}" class="text-purple-600 hover:text-purple-800 p-2 hover:bg-purple-50 rounded-lg transition-all" title="Print Invoice">
+                                        <a href="{{ route('pharmacist.orders.invoice.download', $order->id) }}" class="text-purple-600 hover:text-purple-800 p-2 hover:bg-purple-50 rounded-lg transition-all" title="Print Invoice">
                                             <i class="fas fa-print"></i>
                                         </a>
                                     </div>
