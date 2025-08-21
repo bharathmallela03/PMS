@@ -4,9 +4,10 @@
     <meta charset="UTF-8">
     <meta http-equiv="Content-Type" content="text/html; charset=utf-8"/>
     <title>Invoice #{{ $order->id }}</title>
+      <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" />
     <style>
         body {
-            font-family: 'DejaVu Sans', sans-serif;
+            font-family: 'DejaVu Sans', sans-serif; /* Supports Rupee symbol and other characters */
             font-size: 14px;
             color: #333;
         }
@@ -14,27 +15,38 @@
             width: 100%;
             margin: 0 auto;
         }
-        .header {
-            text-align: center;
+        .invoice-header {
+            padding: 10px 0;
             margin-bottom: 20px;
+            border-bottom: 2px solid #333;
         }
-        .header h1 {
+        .invoice-header h1 {
+            float: left;
             margin: 0;
-            font-size: 24px;
-            color: #0047FF;
+            font-size: 28px;
         }
-        .invoice-details {
-            margin-bottom: 20px;
+        .invoice-header .details {
+            float: right;
+            text-align: right;
+        }
+        .address-section {
             width: 100%;
+            margin-bottom: 30px;
         }
-        .invoice-details td {
-            padding: 5px;
-            vertical-align: top;
+        .address-section .from-address {
+            width: 48%;
+            float: left;
         }
-        .billing-details {
-            padding: 10px;
-            border: 1px solid #eee;
-            background-color: #f9f9f9;
+        .address-section .to-address {
+            width: 48%;
+            float: right;
+            text-align: right;
+        }
+        .address-section h4 {
+            font-size: 14px;
+            font-weight: bold;
+            color: #555;
+            margin-bottom: 5px;
         }
         .items-table {
             width: 100%;
@@ -50,15 +62,15 @@
             background-color: #f2f2f2;
             font-weight: bold;
         }
-        .items-table .text-center {
-            text-align: center;
-        }
         .items-table .text-right {
             text-align: right;
         }
+        .totals-section {
+            width: 100%;
+        }
         .totals-table {
             width: 40%;
-            margin-left: 60%;
+            float: right;
             border-collapse: collapse;
         }
         .totals-table td {
@@ -66,56 +78,56 @@
         }
         .totals-table .label {
             text-align: right;
-            font-weight: bold;
         }
-        .totals-table .amount {
-            text-align: right;
+        .totals-table .grand-total {
+            font-weight: bold;
+            border-top: 2px solid #333;
         }
         .footer {
-            margin-top: 30px;
+            margin-top: 50px;
             text-align: center;
             font-size: 12px;
             color: #777;
+        }
+        .clearfix::after {
+            content: "";
+            clear: both;
+            display: table;
         }
     </style>
 </head>
 <body>
     <div class="container">
-        <div class="header">
-            <h1>PharmaCare</h1>
-            <p>Your Trusted Pharmacy</p>
+        <div class="invoice-header clearfix">
+            <h1>INVOICE</h1>
+            <div class="details">
+                <div><strong>Order #:</strong> {{ $order->id }}</div>
+                <div><strong>Date:</strong> {{ $order->created_at->format('M d, Y') }}</div>
+                <div><strong>Status:</strong> {{ ucfirst($order->status) }}</div>
+            </div>
         </div>
 
-        <table class="invoice-details">
-            <tr>
-                <td style="width: 50%;">
-                    <h4>Invoice To:</h4>
-                    <div class="billing-details">
-                        <strong>{{ $order->shipping_address['name'] }}</strong><br>
-                        {{ $order->shipping_address['address_line_1'] }}<br>
-                        @if(!empty($order->shipping_address['address_line_2']))
-                            {{ $order->shipping_address['address_line_2'] }}<br>
-                        @endif
-                        {{ $order->shipping_address['city'] }}, {{ $order->shipping_address['state'] }} - {{ $order->shipping_address['pincode'] }}<br>
-                        Phone: {{ $order->shipping_address['phone'] }}
-                    </div>
-                </td>
-                <td style="width: 50%; text-align: right;">
-                    <h2>Invoice #{{ $order->id }}</h2>
-                    <p>
-                        <strong>Order Date:</strong> {{ $order->created_at->format('d M, Y') }}<br>
-                        <strong>Payment Status:</strong> <span style="text-transform: capitalize;">{{ $order->payment_status }}</span>
-                    </p>
-                </td>
-            </tr>
-        </table>
+        <div class="address-section clearfix">
+            <div class="from-address">
+                <h4>FROM</h4>
+                <strong>{{ $order->pharmacist->pharmacy_name ?? 'PharmaCare' }}</strong><br>
+                {{ $order->pharmacist->address ?? '123 Pharmacy Lane, Health City' }}<br>
+                {{ $order->pharmacist->email }}
+            </div>
+            <div class="to-address">
+                <h4>TO</h4>
+                <strong>{{ $order->customer->name }}</strong><br>
+                {{ $order->shipping_address['address_line_1'] }}<br>
+                {{ $order->shipping_address['city'] }}, {{ $order->shipping_address['state'] }} - {{ $order->shipping_address['pincode'] }}
+            </div>
+        </div>
 
         <table class="items-table">
             <thead>
                 <tr>
                     <th>#</th>
-                    <th>Product</th>
-                    <th class="text-center">Quantity</th>
+                    <th>Item</th>
+                    <th class="text-right">Qty</th>
                     <th class="text-right">Unit Price</th>
                     <th class="text-right">Total</th>
                 </tr>
@@ -125,7 +137,7 @@
                 <tr>
                     <td>{{ $index + 1 }}</td>
                     <td>{{ $item->medicine->name }}</td>
-                    <td class="text-center">{{ $item->quantity }}</td>
+                    <td class="text-right">{{ $item->quantity }}</td>
                     <td class="text-right">₹{{ number_format($item->price, 2) }}</td>
                     <td class="text-right">₹{{ number_format($item->total, 2) }}</td>
                 </tr>
@@ -133,28 +145,31 @@
             </tbody>
         </table>
 
-        <table class="totals-table">
-            <tr>
-                <td class="label">Subtotal:</td>
-                <td class="amount">₹{{ number_format($order->subtotal, 2) }}</td>
-            </tr>
-            <tr>
-                <td class="label">Shipping:</td>
-                <td class="amount">₹{{ number_format($order->shipping_amount, 2) }}</td>
-            </tr>
-            <tr>
-                <td class="label">Tax (5%):</td>
-                <td class="amount">₹{{ number_format($order->tax_amount, 2) }}</td>
-            </tr>
-            <tr style="font-weight: bold; border-top: 2px solid #333;">
-                <td class="label">Grand Total:</td>
-                <td class="amount">₹{{ number_format($order->total_amount, 2) }}</td>
-            </tr>
-        </table>
+        <div class="totals-section clearfix">
+            <table class="totals-table">
+                <tbody>
+                    <tr>
+                        <td class="label">Subtotal</td>
+                        <td class="text-right">₹{{ number_format($order->subtotal, 2) }}</td>
+                    </tr>
+                    <tr>
+                        <td class="label">Shipping</td>
+                        <td class="text-right">₹{{ number_format($order->shipping_amount, 2) }}</td>
+                    </tr>
+                    <tr>
+                        <td class="label">Tax</td>
+                        <td class="text-right">₹{{ number_format($order->tax_amount, 2) }}</td>
+                    </tr>
+                    <tr class="grand-total">
+                        <td class="label">Grand Total</td>
+                        <td class="text-right">₹{{ number_format($order->total_amount, 2) }}</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
 
         <div class="footer">
             <p>Thank you for your business!</p>
-            <p>PharmaCare | 123 Health St, Wellness City, India</p>
         </div>
     </div>
 </body>
