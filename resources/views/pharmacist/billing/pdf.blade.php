@@ -4,9 +4,11 @@
     <meta charset="UTF-8">
     <meta http-equiv="Content-Type" content="text/html; charset=utf-8"/>
     <title>Invoice {{ $bill->bill_number }}</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" />
+
     <style>
         body {
-            font-family: 'Helvetica Neue', 'Helvetica', Helvetica, Arial, sans-serif;
+            font-family: 'DejaVu Sans', sans-serif; /* <-- This font supports the Rupee symbol */
             font-size: 14px;
             color: #333;
         }
@@ -139,8 +141,8 @@
                     <td>{{ $index + 1 }}</td>
                     <td>{{ $item->medicine->name }}</td>
                     <td class="text-right">{{ $item->quantity }}</td>
-                    <td class="text-right">&#8377;{{ number_format($item->price, 2) }}</td>
-                    <td class="text-right">&#8377;{{ number_format($item->total, 2) }}</td>
+                    <td class="text-right">{{ number_format($item->price, 2) }}</td>
+                    <td class="text-right">{{ number_format($item->total, 2) }}</td>
                 </tr>
                 @endforeach
             </tbody>
@@ -151,15 +153,15 @@
                 <tbody>
                     <tr>
                         <td class="total-label">Subtotal</td>
-                        <td class="text-right">&#8377;{{ number_format($bill->subtotal, 2) }}</td>
+                        <td class="text-right">{{ number_format($bill->subtotal, 2) }}</td>
                     </tr>
                     <tr>
                         <td class="total-label">Discount ({{ $bill->discount_percentage }}%)</td>
-                        <td class="text-right">- &#8377;{{ number_format($bill->discount_amount, 2) }}</td>
+                        <td class="text-right">{{ number_format($bill->discount_amount, 2) }}</td>
                     </tr>
                     <tr class="grand-total">
                         <td class="total-label">Grand Total</td>
-                        <td class="text-right">&#8377;{{ number_format($bill->total_amount, 2) }}</td>
+                        <td class="text-right">{{ number_format($bill->total_amount, 2) }}</td>
                     </tr>
                 </tbody>
             </table>

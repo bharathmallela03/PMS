@@ -14,7 +14,7 @@ return [
     */
 
     'defaults' => [
-        'guard' => 'customer',
+        'guard' => 'api',
         'passwords' => 'customers',
     ],
 
@@ -58,6 +58,11 @@ return [
 
         'customer' => [
             'driver' => 'session',
+            'provider' => 'customers',
+        ],
+
+        'api' => [
+            'driver' => 'sanctum',
             'provider' => 'customers',
         ],
     ],

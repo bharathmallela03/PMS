@@ -98,11 +98,13 @@
 <div class="container-fluid">
     <div class="d-flex justify-content-between align-items-center mb-4">
         <h1 class="h3 mb-0 text-gray-800">Order #{{ $order->id }}</h1>
-        <div>
-            <a href="{{ route('customer.orders.invoice.download', $order->id) }}" class="btn btn-sm btn-outline-primary">
-                <i class="fas fa-download me-2"></i> Download Invoice
-            </a>
-        </div>
+       @if($order->status == 'delivered')
+    <div>
+        <a href="{{ route('customer.orders.invoice.download', $order->id) }}" class="btn btn-sm btn-outline-primary">
+            <i class="fas fa-download me-2"></i> Download Invoice
+        </a>
+    </div>
+@endif
     </div>
 
     <div class="row">

@@ -9,13 +9,17 @@
         <p class="text-muted">View and manage your medicine inventory</p>
     </div>
     <div>
+        {{-- ## BUTTON ADDED HERE ## --}}
+        <button type="button" class="btn btn-info me-2" data-bs-toggle="modal" data-bs-target="#importModal">
+    <i class="fas fa-upload me-2"></i>Import Medicines
+</button>
+        
         <a href="{{ route('pharmacist.medicines.create') }}" class="btn btn-primary">
             <i class="fas fa-plus me-2"></i>Add New Medicine
         </a>
     </div>
 </div>
 
-<!-- Search and Filter -->
 <div class="card shadow mb-4">
     <div class="card-body">
         <form method="GET" action="{{ route('pharmacist.medicines') }}">
@@ -60,7 +64,6 @@
     </div>
 </div>
 
-<!-- Medicines List -->
 <div class="card shadow">
     <div class="card-header py-3 d-flex justify-content-between align-items-center">
         <h6 class="m-0 font-weight-bold text-primary">Medicines Inventory</h6>
@@ -175,87 +178,11 @@
                             </td>
                         </tr>
 
-                        <!-- Medicine Details Modal -->
-                        <!-- <div class="modal fade" id="medicineModal{{ $medicine->id }}" tabindex="-1">
-                            <div class="modal-dialog modal-lg">
-                                <div class="modal-content">
-                                    <div class="modal-header">
-                                        <h5 class="modal-title">{{ $medicine->name }} - Details</h5>
-                                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-                                    </div>
-                                    <div class="modal-body">
-                                        <div class="row">
-                                            <div class="col-md-4">
-                                                <img src="{{ $medicine->photo_url }}" alt="{{ $medicine->name }}" 
-                                                     class="img-fluid rounded">
-                                            </div>
-                                            <div class="col-md-8">
-                                                <table class="table table-borderless">
-                                                    <tr>
-                                                        <td><strong>Name:</strong></td>
-                                                        <td>{{ $medicine->name }}</td>
-                                                    </tr>
-                                                    <tr>
-                                                        <td><strong>Brand:</strong></td>
-                                                        <td>{{ $medicine->brand }}</td>
-                                                    </tr>
-                                                    <tr>
-                                                        <td><strong>Generic Name:</strong></td>
-                                                        <td>{{ $medicine->generic_name ?? 'N/A' }}</td>
-                                                    </tr>
-                                                    <tr>
-                                                        <td><strong>Category:</strong></td>
-                                                        <td>{{ $medicine->category }}</td>
-                                                    </tr>
-                                                    <tr>
-                                                        <td><strong>Company:</strong></td>
-                                                        <td>{{ $medicine->company->name ?? 'N/A' }}</td>
-                                                    </tr>
-                                                    <tr>
-                                                        <td><strong>Quantity:</strong></td>
-                                                        <td>{{ $medicine->quantity }}</td>
-                                                    </tr>
-                                                    <tr>
-                                                        <td><strong>Price:</strong></td>
-                                                        <td>₹{{ number_format($medicine->price, 2) }}</td>
-                                                    </tr>
-                                                    <tr>
-                                                        <td><strong>Cost Price:</strong></td>
-                                                        <td>₹{{ number_format($medicine->cost_price, 2) }}</td>
-                                                    </tr>
-                                                    <tr>
-                                                        <td><strong>Batch Number:</strong></td>
-                                                        <td>{{ $medicine->batch_number }}</td>
-                                                    </tr>
-                                                    <tr>
-                                                        <td><strong>Expiry Date:</strong></td>
-                                                        <td>{{ $medicine->expiry_date->format('M d, Y') }}</td>
-                                                    </tr>
-                                                </table>
-                                            </div>
-                                        </div>
-                                        @if($medicine->description)
-                                            <div class="mt-3">
-                                                <strong>Description:</strong>
-                                                <p>{{ $medicine->description }}</p>
-                                            </div>
-                                        @endif
-                                    </div>
-                                    <div class="modal-footer">
-                                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
-                                        <a href="{{ route('pharmacist.medicines.edit', $medicine->id) }}" class="btn btn-primary">
-                                            <i class="fas fa-edit me-1"></i>Edit Medicine
-                                        </a>
-                                    </div>
-                                </div>
-                            </div>
-                        </div> -->
                         @endforeach
                     </tbody>
                 </table>
             </div>
             
-            <!-- Pagination -->
             <div class="d-flex justify-content-center">
                 {{ $medicines->appends(request()->query())->links() }}
             </div>
@@ -269,6 +196,45 @@
                 </a>
             </div>
         @endif
+    </div>
+</div>
+
+{{-- ========================================== --}}
+{{--         MODAL FOR EXCEL UPLOAD             --}}
+{{-- ========================================== --}}
+<div class="modal fade" id="importModal" tabindex="-1" aria-labelledby="importModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg animate__animated animate__zoomIn">
+        <div class="modal-content">
+            <div class="modal-header bg-sidebar">
+                <h5 class="modal-title" id="importModalLabel">Excel Upload - Medicine Inventory</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <form action="{{ route('pharmacist.medicines.import.store') }}" method="POST" enctype="multipart/form-data" class="dropzone" id="import-dropzone">
+                    @csrf
+                    <div class="dz-message" data-dz-message>
+                        <div class="text-center">
+                             <i class="fas fa-cloud-upload-alt fa-3x text-muted"></i>
+                             <h4 class="mt-2">Drag and drop a file here or click</h4>
+                             <p class="text-muted">(Only .xlsx, .xls, or .csv files are accepted)</p>
+                        </div>
+                    </div>
+                    <div class="fallback">
+                       <input name="import_file" type="file" />
+                    </div>
+                </form>
+
+                <div class="mt-4 text-center">
+                    <a href="{{ route('pharmacist.medicines.import.template') }}" class="btn btn-link">
+                        <i class="fas fa-download me-1"></i>Download Excel Template
+                    </a>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-primary" id="upload-button">Save</button>
+            </div>
+        </div>
     </div>
 </div>
 
